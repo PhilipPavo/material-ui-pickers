@@ -41,7 +41,7 @@ export interface CalendarHeaderProps<TDate>
   reduceAnimations: boolean;
   changeView: (view: DatePickerView) => void;
   onMonthChange: (date: TDate, slideDirection: SlideDirection) => void;
-  headerLabelRender: (label: String) => React.ReactElement
+  headerLabelRender?: (label: String) => React.ReactElement
 }
 
 export const useStyles = makeStyles(

@@ -35,6 +35,7 @@ export interface CalendarViewProps<TDate>
    * Callback firing on month change. @DateIOType
    */
   onMonthChange?: (date: TDate) => void;
+  headerLabelRender?: (label: String) => React.ReactElement
 }
 
 export type ExportedCalendarViewProps<TDate> = Omit<
