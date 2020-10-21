@@ -41,6 +41,7 @@ export interface CalendarHeaderProps<TDate>
   reduceAnimations: boolean;
   changeView: (view: DatePickerView) => void;
   onMonthChange: (date: TDate, slideDirection: SlideDirection) => void;
+  headerLabelRender: (label: String) => React.ReactElement
 }
 
 export const useStyles = makeStyles(
@@ -109,6 +110,7 @@ export function CalendarHeader<TDate>(props: CalendarHeaderProps<TDate>) {
     leftArrowButtonText = 'previous month',
     rightArrowButtonText = 'next month',
     getViewSwitchingButtonText = getSwitchingViewAriaText,
+    headerLabelRender = (label) => label
   } = props;
 
   const utils = useUtils<TDate>();
@@ -162,7 +164,7 @@ export function CalendarHeader<TDate>(props: CalendarHeaderProps<TDate>) {
               align="center"
               variant="subtitle1"
             >
-              {utils.format(month, 'year')}
+              {headerLabelRender(utils.format(month, 'year'))}
             </Typography>
           </FadeTransitionGroup>
           {views.length > 1 && (
