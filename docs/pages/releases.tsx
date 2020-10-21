@@ -1,3 +1,4 @@
+/* eslint-disable */
 import * as React from 'react';
 import { NextFC } from 'next';
 import { PageMeta } from '_shared/PageMeta';
@@ -36,12 +37,11 @@ const Releases: NextFC<ReleasesProps> = ({ tags }) => {
   const classes = useStyles();
 
   return (
-    <>
+    <React.Fragment>
       <PageMeta
         title="Releases - @material-ui/pickers"
         description="List of @material-ui/pickers releases with a link to per-release documentation site."
       />
-
       <Typography variant="h2" gutterBottom>
         Releases
       </Typography>
@@ -50,7 +50,6 @@ const Releases: NextFC<ReleasesProps> = ({ tags }) => {
         of previous material-ui-picker's releases. Please note that our versions are not synced with
         @material-ui/core
       </Typography>
-
       <Paper className={classes.scrollableTable}>
         <Table>
           <TableHead>
@@ -60,20 +59,18 @@ const Releases: NextFC<ReleasesProps> = ({ tags }) => {
               <TableCell>Release notes</TableCell>
             </TableRow>
           </TableHead>
-
           <TableBody>
             <TableRow>
               <TableCell>
                 <strong> Unpublished </strong>
               </TableCell>
               <TableCell>
-                <ExternalLink href="https://material-ui-pickers.mui-org.now.sh/" />
+                <ExternalLink href="https://dev.material-ui-pickers.dev/" />
               </TableCell>
               <TableCell>
                 This is unpublished <b> future in-development </b> version.
               </TableCell>
             </TableRow>
-
             <TableRow>
               <TableCell>
                 <strong> Latest </strong>
@@ -83,8 +80,7 @@ const Releases: NextFC<ReleasesProps> = ({ tags }) => {
               </TableCell>
               <TableCell>Latest stable published release</TableCell>
             </TableRow>
-
-            {tags.map(version => {
+            {tags.map((version) => {
               const docsLink = `https://${version.replace(/\./g, '-')}.${DOMAIN}`;
               const releaseNotesLink = `${GITHUB_URL}/releases/tag/${version}`;
 
@@ -100,7 +96,6 @@ const Releases: NextFC<ReleasesProps> = ({ tags }) => {
                 </TableRow>
               );
             })}
-
             <TableRow>
               <TableCell>v2</TableCell>
               <TableCell>
@@ -113,13 +108,13 @@ const Releases: NextFC<ReleasesProps> = ({ tags }) => {
           </TableBody>
         </Table>
       </Paper>
-    </>
+    </React.Fragment>
   );
 };
 
 Releases.getInitialProps = () => {
-  return fetchGithubData('tags').then(data => ({
-    tags: data.map(tagObject => tagObject.name).filter(tag => Number(tag.charAt(1)) > 2),
+  return fetchGithubData('tags').then((data) => ({
+    tags: data.map((tagObject) => tagObject.name).filter((tag) => Number(tag.charAt(1)) > 2),
   }));
 };
 

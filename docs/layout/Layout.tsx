@@ -1,5 +1,5 @@
+import * as React from 'react';
 import clsx from 'clsx';
-import React, { Component } from 'react';
 import MenuIcon from '@material-ui/icons/Menu';
 import DrawerMenu from './components/DrawerMenu';
 import Github from '../_shared/svgIcons/GithubIcon';
@@ -11,7 +11,7 @@ import { GITHUB_URL } from '_constants';
 import { createOverrides } from './styleOverrides';
 import { withRouter, WithRouterProps } from 'next/router';
 import { utilsMap, UtilsLib } from '../utils/utilsService';
-import { withStyles, WithStyles, createStyles } from '@material-ui/styles';
+import { withStyles, WithStyles, createStyles } from '@material-ui/core/styles';
 import {
   Hidden,
   Drawer,
@@ -79,11 +79,11 @@ const styles = (theme: Theme) =>
     },
   });
 
-class Layout extends Component<LayoutProps> {
+class Layout extends React.Component<LayoutProps> {
   state = {
     anchorEl: null,
     drawerOpen: false,
-    selectedIndex: Object.keys(utilsMap).findIndex(lib => lib === 'date-fns'),
+    selectedIndex: Object.keys(utilsMap).findIndex((lib) => lib === 'date-fns'),
   };
 
   handleDrawerToggle = () => {
@@ -133,9 +133,7 @@ class Layout extends Component<LayoutProps> {
             >
               <MenuIcon />
             </IconButton>
-
             <div className={classes.flex} />
-
             <Tooltip title="Change the peer library for date management">
               <IconButton color="inherit" onClick={this.handleUtilsMenuOpen}>
                 <SettingsIcon />
@@ -152,25 +150,26 @@ class Layout extends Component<LayoutProps> {
                   key={option}
                   className={classes.utilsMenuItem}
                   selected={index === this.state.selectedIndex}
-                  onClick={event => this.handleUtilsChange(event, index)}
+                  onClick={(event: any) => this.handleUtilsChange(event, index)}
                 >
                   {option}
                 </MenuItem>
               ))}
             </Menu>
-
             <Tooltip title="Toggle light/dark theme" enterDelay={300}>
-              <IconButton data-testid="toggle-theme-btn" color="inherit" onClick={toggleThemeType}>
+              <IconButton
+                data-mui-test="toggle-theme-btn"
+                color="inherit"
+                onClick={toggleThemeType}
+              >
                 <LightbulbOutlineIcon />
               </IconButton>
             </Tooltip>
-
             <Tooltip title="Toggle direction" enterDelay={300}>
               <IconButton color="inherit" onClick={toggleDirection}>
                 {theme.direction === 'rtl' ? <TextDirectionLtrIcon /> : <TextDirectionRtLIcon />}
               </IconButton>
             </Tooltip>
-
             <Tooltip title="Github" enterDelay={300}>
               <IconButton color="inherit" component="a" href={GITHUB_URL}>
                 <Github color="inherit" />
@@ -178,7 +177,6 @@ class Layout extends Component<LayoutProps> {
             </Tooltip>
           </Toolbar>
         </AppBar>
-
         <Hidden mdUp>
           <Drawer
             variant="temporary"
@@ -193,7 +191,6 @@ class Layout extends Component<LayoutProps> {
             <DrawerMenu />
           </Drawer>
         </Hidden>
-
         <Hidden smDown implementation="css">
           <Drawer
             variant={isLanding ? 'temporary' : 'permanent'}
@@ -203,7 +200,6 @@ class Layout extends Component<LayoutProps> {
             <DrawerMenu />
           </Drawer>
         </Hidden>
-
         <main
           className={clsx(classes.main, {
             [classes.landingMain]: isLanding,

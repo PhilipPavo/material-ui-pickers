@@ -1,24 +1,36 @@
 import * as React from 'react';
-import ClockNumber from './ClockNumber';
-import { IUtils } from '@date-io/core/IUtils';
-import { MaterialUiPickersDate } from '../../typings/date';
+import { ClockNumber } from './ClockNumber';
+import { MuiPickersAdapter } from '../../_shared/hooks/useUtils';
+import { PickerSelectionState } from '../../_shared/hooks/usePickerState';
+
+interface GetHourNumbersOptions {
+  ampm: boolean;
+  date: unknown;
+  getClockNumberText: (hour: string) => string;
+  isDisabled: (value: number) => boolean;
+  onChange: (value: number, isFinish?: PickerSelectionState) => void;
+  utils: MuiPickersAdapter;
+}
 
 export const getHourNumbers = ({
   ampm,
-  utils,
   date,
-}: {
-  ampm: boolean;
-  utils: IUtils<MaterialUiPickersDate>;
-  date: MaterialUiPickersDate;
-}) => {
-  const currentHours = utils.getHours(date);
+  getClockNumberText,
+  isDisabled,
+  onChange,
+  utils,
+}: GetHourNumbersOptions) => {
+  const currentHours = date ? utils.getHours(date) : null;
 
   const hourNumbers: JSX.Element[] = [];
   const startHour = ampm ? 1 : 0;
   const endHour = ampm ? 12 : 23;
 
   const isSelected = (hour: number) => {
+    if (currentHours === null) {
+      return false;
+    }
+
     if (ampm) {
       if (hour === 12) {
         return currentHours === 12 || currentHours === 0;
@@ -37,40 +49,55 @@ export const getHourNumbers = ({
       label = '00';
     }
 
-    const props = {
-      index: hour,
-      label: utils.formatNumber(label),
-      selected: isSelected(hour),
-      isInner: !ampm && (hour === 0 || hour > 12),
-    };
-
-    hourNumbers.push(<ClockNumber key={hour} {...props} />);
+    const isInner = !ampm && (hour === 0 || hour > 12);
+    hourNumbers.push(
+      <ClockNumber
+        key={hour}
+        index={hour}
+        isInner={isInner}
+        selected={isSelected(hour)}
+        disabled={isDisabled(hour)}
+        label={utils.formatNumber(label)}
+        onSelect={() => onChange(hour, 'finish')}
+        getClockNumberText={getClockNumberText}
+      />
+    );
   }
 
   return hourNumbers;
 };
 
 export const getMinutesNumbers = ({
-  value,
   utils,
-}: {
-  value: number;
-  utils: IUtils<MaterialUiPickersDate>;
-}) => {
+  value,
+  onChange,
+  isDisabled,
+  getClockNumberText,
+}: Omit<GetHourNumbersOptions, 'ampm' | 'date'> & { value: number }) => {
   const f = utils.formatNumber;
 
-  return [
-    <ClockNumber label={f('00')} selected={value === 0} index={12} key={12} />,
-    <ClockNumber label={f('05')} selected={value === 5} index={1} key={1} />,
-    <ClockNumber label={f('10')} selected={value === 10} index={2} key={2} />,
-    <ClockNumber label={f('15')} selected={value === 15} index={3} key={3} />,
-    <ClockNumber label={f('20')} selected={value === 20} index={4} key={4} />,
-    <ClockNumber label={f('25')} selected={value === 25} index={5} key={5} />,
-    <ClockNumber label={f('30')} selected={value === 30} index={6} key={6} />,
-    <ClockNumber label={f('35')} selected={value === 35} index={7} key={7} />,
-    <ClockNumber label={f('40')} selected={value === 40} index={8} key={8} />,
-    <ClockNumber label={f('45')} selected={value === 45} index={9} key={9} />,
-    <ClockNumber label={f('50')} selected={value === 50} index={10} key={10} />,
-    <ClockNumber label={f('55')} selected={value === 55} index={11} key={11} />,
-  ];
+  return ([
+    [5, f('05')],
+    [10, f('10')],
+    [15, f('15')],
+    [20, f('20')],
+    [25, f('25')],
+    [30, f('30')],
+    [35, f('35')],
+    [40, f('40')],
+    [45, f('45')],
+    [50, f('50')],
+    [55, f('55')],
+    [0, f('00')],
+  ] as const).map(([numberValue, label], index) => (
+    <ClockNumber
+      key={numberValue}
+      label={label}
+      index={index + 1}
+      disabled={isDisabled(numberValue)}
+      selected={numberValue === value}
+      onSelect={(isFinish) => onChange(numberValue, isFinish)}
+      getClockNumberText={getClockNumberText}
+    />
+  ));
 };

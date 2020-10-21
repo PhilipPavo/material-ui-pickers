@@ -1,16 +1,23 @@
+import * as React from 'react';
 import rtl from 'jss-rtl';
 import Layout from './Layout';
-import React, { useState, useCallback } from 'react';
 import orange from '@material-ui/core/colors/deepOrange';
 import { create } from 'jss';
 import { SnackbarProvider } from 'notistack';
 import { setPrismTheme } from '../utils/prism';
 import { PageContext } from '../utils/getPageContext';
+import { LocalizationProvider } from '@material-ui/pickers';
 import { UtilsContext } from '../_shared/UtilsServiceContext';
-import { MuiPickersUtilsProvider } from '@material-ui/pickers';
-import { Theme, createMuiTheme, CssBaseline } from '@material-ui/core';
-import { ThemeProvider, jssPreset, StylesProvider } from '@material-ui/styles';
+import { NotificationManager } from 'utils/NotificationManager';
 import { createUtilsService, UtilsLib, utilsMap } from '../utils/utilsService';
+import {
+  Theme,
+  createMuiTheme,
+  CssBaseline,
+  ThemeProvider,
+  jssPreset,
+  StylesProvider,
+} from '@material-ui/core';
 
 export type ThemeType = 'light' | 'dark';
 export type Direction = Theme['direction'];
@@ -30,6 +37,8 @@ const createCustomMuiTheme = (theme: ThemeType, direction: Theme['direction']) =
       secondary: orange,
       type: theme,
     },
+    overrides: {},
+    props: {},
   });
 };
 
@@ -68,18 +77,18 @@ export const PageWithContexts: React.SFC<Props> = ({
 `);
   }, []);
 
-  const [lib, setLib] = useState<UtilsLib>('date-fns');
-  const [theme, setTheme] = useState<ThemeType>(initialTheme);
-  const [direction, setDirection] = useState<Direction>('ltr');
+  const [lib, setLib] = React.useState<UtilsLib>('date-fns');
+  const [theme, setTheme] = React.useState<ThemeType>(initialTheme);
+  const [direction, setDirection] = React.useState<Direction>('ltr');
 
-  const setBodyDirection = useCallback(() => {
+  const setBodyDirection = React.useCallback(() => {
     const newDirection = direction === 'ltr' ? 'rtl' : 'ltr';
     document.body.dir = newDirection;
 
     setDirection(newDirection);
   }, [direction]);
 
-  const toggleTheme = useCallback(() => {
+  const toggleTheme = React.useCallback(() => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
 
     setTheme(newTheme);
@@ -96,13 +105,13 @@ export const PageWithContexts: React.SFC<Props> = ({
       sheetsRegistry={pageContext.sheetsRegistry}
       generateClassName={pageContext.generateClassName}
     >
-      <SnackbarProvider maxSnack={3}>
-        <ThemeProvider theme={muiTheme}>
-          <MuiPickersUtilsProvider utils={utilsMap[lib]}>
+      <ThemeProvider theme={muiTheme}>
+        <SnackbarProvider maxSnack={3}>
+          <LocalizationProvider dateAdapter={utilsMap[lib] as any}>
             <ThemeContext.Provider value={theme}>
               <UtilsContext.Provider value={createUtilsService(lib)}>
                 <CssBaseline />
-
+                <NotificationManager />
                 <Layout
                   children={children}
                   onChangeUtils={setLib}
@@ -111,9 +120,9 @@ export const PageWithContexts: React.SFC<Props> = ({
                 />
               </UtilsContext.Provider>
             </ThemeContext.Provider>
-          </MuiPickersUtilsProvider>
-        </ThemeProvider>
-      </SnackbarProvider>
+          </LocalizationProvider>
+        </SnackbarProvider>
+      </ThemeProvider>
     </StylesProvider>
   );
 };

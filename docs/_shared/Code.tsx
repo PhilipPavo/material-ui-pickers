@@ -3,7 +3,7 @@ import React from 'react';
 import { highlight } from '../utils/prism';
 import { makeStyles } from '@material-ui/core';
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles((theme) => ({
   root: {
     margin: 0,
     fontFamily: theme.typography.fontFamily,
@@ -42,7 +42,7 @@ interface CodeProps {
   language?: 'jsx' | 'typescript' | 'markup';
 }
 
-const Code: React.SFC<CodeProps> = ({ language = 'jsx', inline, children, withMargin }) => {
+const Code: React.FC<CodeProps> = ({ language = 'typescript', inline, children, withMargin }) => {
   const classes = useStyles();
   const highlightedCode = highlight(children, language);
 

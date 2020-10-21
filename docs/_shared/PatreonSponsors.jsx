@@ -1,41 +1,13 @@
-import PropTypes from 'prop-types';
+import React from 'react';
 import patrons from '../patrons.json';
-import React, { Component } from 'react';
-import { withStyles, Avatar, List, ListItem, ListItemText } from '@material-ui/core';
+import { makeStyles, Avatar, List, ListItem, ListItemText } from '@material-ui/core';
 
-class PatreonSponsors extends Component {
-  static propTypes = {
-    classes: PropTypes.object.isRequired,
-  };
-
-  render() {
-    const { classes } = this.props;
-
-    if (patrons.length === 0) {
-      return 'There is no sponsors yet 😢';
-    }
-
-    return (
-      <List className={classes.patronList}>
-        {patrons.map(patron => (
-          <a
-            className={classes.link}
-            key={patron.full_name}
-            href={patron.url}
-            rel="noopenner noreferrer"
-          >
-            <ListItem button>
-              <Avatar className={classes.avatar} alt={patron.full_name} src={patron.image_url} />
-              <ListItemText primary={patron.full_name} secondary={patron.email} />
-            </ListItem>
-          </a>
-        ))}
-      </List>
-    );
-  }
-}
-
-const styles = {
+const useStyles = makeStyles({
+  aboutMeDescription: {
+    maxWidth: 250,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
   spinner: {
     margin: '0 auto',
   },
@@ -50,6 +22,47 @@ const styles = {
   avatar: {
     marginRight: 8,
   },
-};
+});
 
-export default withStyles(styles)(PatreonSponsors);
+export default function PatreonSponsors() {
+  const classes = useStyles();
+  if (patrons.length === 0) {
+    return <React.Fragment>There is no sponsors yet 😢</React.Fragment>;
+  }
+
+  function getPatronSecondaryText(patron) {
+    if (patron.twitter) {
+      return <a href={`https://twitter.com/${patron.twitter}`}>@{patron.twitter}</a>;
+    }
+    if (patron.about) {
+      return (
+        <span
+          dangerouslySetInnerHTML={{
+            __html: patron.about,
+          }}
+        />
+      );
+    }
+
+    return patron.email;
+  }
+
+  return (
+    <List className={classes.patronList}>
+      {patrons.map((patron, key) => (
+        <a className={classes.link} key={key} href={patron.url} rel="noopenner noreferrer">
+          <ListItem button>
+            <Avatar className={classes.avatar} alt={patron.full_name} src={patron.image_url} />
+            <ListItemText
+              classes={{
+                secondary: classes.aboutMeDescription,
+              }}
+              primary={patron.full_name}
+              secondary={getPatronSecondaryText(patron)}
+            />
+          </ListItem>
+        </a>
+      ))}
+    </List>
+  );
+}

@@ -1,78 +1,105 @@
-import { useUtils } from '../_shared/hooks/useUtils';
+import React from 'react';
+import { ClockIcon } from '../_shared/icons/Clock';
+import { ParsableDate } from '../constants/prop-types';
 import { TimePickerToolbar } from './TimePickerToolbar';
-import { PureDateInput } from '../_shared/PureDateInput';
-import { KeyboardDateInput } from '../_shared/KeyboardDateInput';
-import { timePickerDefaultProps } from '../constants/prop-types';
-import { usePickerState } from '../_shared/hooks/usePickerState';
+import { ExportedClockViewProps } from '../views/Clock/ClockView';
+import { ResponsiveWrapper } from '../wrappers/ResponsiveWrapper';
 import { pick12hOr24hFormat } from '../_helpers/text-field-helper';
-import { useKeyboardPickerState } from '../_shared/hooks/useKeyboardPickerState';
-import {
-  WithKeyboardInputProps,
-  makePickerWithState,
-  WithPureInputProps,
-} from '../Picker/makePickerWithState';
+import { useParsedDate, OverrideParsableDateProps } from '../_shared/hooks/date-helpers-hooks';
+import { useUtils, MuiPickersAdapter } from '../_shared/hooks/useUtils';
+import { validateTime, TimeValidationError } from '../_helpers/time-utils';
+import { WithViewsProps, AllSharedPickerProps } from '../Picker/SharedPickerProps';
+import { ValidationProps, makeValidationHook } from '../_shared/hooks/useValidation';
+import { MobileWrapper, DesktopWrapper, StaticWrapper, SomeWrapper } from '../wrappers/Wrapper';
+import { SharedPickerProps, makePickerWithStateAndWrapper } from '../Picker/makePickerWithState';
 
-type TimePickerView = 'hours' | 'minutes' | 'seconds';
+export interface BaseTimePickerProps<TDate = unknown>
+  extends ValidationProps<TimeValidationError, ParsableDate<TDate>>,
+    WithViewsProps<'hours' | 'minutes' | 'seconds'>,
+    OverrideParsableDateProps<TDate, ExportedClockViewProps<TDate>, 'minTime' | 'maxTime'> {}
 
-export interface BaseTimePickerProps {
-  /**
-   * 12h/24h view for hour selection clock
-   * @default true
-   */
-  ampm?: boolean;
-  /**
-   * Step over minutes
-   * @default 1
-   */
-  minutesStep?: number;
+export function getTextFieldAriaText(value: ParsableDate, utils: MuiPickersAdapter) {
+  return value && utils.isValid(utils.date(value))
+    ? `Choose time, selected time is ${utils.format(utils.date(value), 'fullTime')}`
+    : 'Choose time';
 }
 
-export interface TimePickerViewsProps extends BaseTimePickerProps {
-  /** Array of views to show */
-  views?: ('hours' | 'minutes' | 'seconds')[];
-  /** First view to show in timepicker */
-  openTo?: 'hours' | 'minutes' | 'seconds';
-}
-
-export type TimePickerProps = WithPureInputProps & TimePickerViewsProps;
-
-export type KeyboardTimePickerProps = WithKeyboardInputProps & TimePickerViewsProps;
-
-const defaultProps = {
-  ...timePickerDefaultProps,
-  openTo: 'hours' as TimePickerView,
-  views: ['hours', 'minutes'] as TimePickerView[],
-};
-
-function useOptions(props: TimePickerProps | KeyboardTimePickerProps) {
+function useInterceptProps({
+  ampm,
+  inputFormat,
+  maxTime: __maxTime,
+  minTime: __minTime,
+  openTo = 'hours',
+  views = ['hours', 'minutes'],
+  ...other
+}: BaseTimePickerProps & AllSharedPickerProps) {
   const utils = useUtils();
 
+  const minTime = useParsedDate(__minTime);
+  const maxTime = useParsedDate(__maxTime);
+  const willUseAmPm = ampm ?? utils.is12HourCycleInCurrentLocale();
+
   return {
-    getDefaultFormat: () =>
-      pick12hOr24hFormat(props.format, props.ampm, {
-        '12h': utils.time12hFormat,
-        '24h': utils.time24hFormat,
-      }),
+    views,
+    openTo,
+    minTime,
+    maxTime,
+    ampm: willUseAmPm,
+    acceptRegex: willUseAmPm ? /[\dapAP]/gi : /\d/gi,
+    mask: '__:__',
+    disableMaskedInput: willUseAmPm,
+    getOpenDialogAriaText: getTextFieldAriaText,
+    openPickerIcon: <ClockIcon />,
+    inputFormat: pick12hOr24hFormat(inputFormat, willUseAmPm, {
+      localized: utils.formats.fullTime,
+      '12h': utils.formats.fullTime12h,
+      '24h': utils.formats.fullTime24h,
+    }),
+    ...other,
   };
 }
 
-export const TimePicker = makePickerWithState<TimePickerProps>({
-  useOptions,
-  Input: PureDateInput,
-  useState: usePickerState,
+const timePickerConfig = {
+  useInterceptProps,
+  useValidation: makeValidationHook<
+    TimeValidationError,
+    ParsableDate,
+    BaseTimePickerProps<unknown>
+  >(validateTime),
   DefaultToolbarComponent: TimePickerToolbar,
+};
+
+type TimePickerComponent<TWrapper extends SomeWrapper> = <TDate>(
+  props: BaseTimePickerProps<TDate> & SharedPickerProps<TDate, TWrapper>
+) => JSX.Element;
+
+export const TimePicker = makePickerWithStateAndWrapper<BaseTimePickerProps>(ResponsiveWrapper, {
+  name: 'MuiTimePicker',
+  ...timePickerConfig,
+}) as TimePickerComponent<typeof ResponsiveWrapper>;
+
+export type TimePickerProps = React.ComponentProps<typeof TimePicker>;
+
+export const DesktopTimePicker = makePickerWithStateAndWrapper<BaseTimePickerProps>(
+  DesktopWrapper,
+  {
+    name: 'MuiDesktopTimePicker',
+    ...timePickerConfig,
+  }
+) as TimePickerComponent<typeof DesktopWrapper>;
+
+export type DesktopTimePickerProps = React.ComponentProps<typeof DesktopTimePicker>;
+
+export const MobileTimePicker = makePickerWithStateAndWrapper<BaseTimePickerProps>(MobileWrapper, {
+  name: 'MuiMobileTimePicker',
+  ...timePickerConfig,
+}) as TimePickerComponent<typeof MobileWrapper>;
+
+export type MobileTimePickerProps = React.ComponentProps<typeof MobileTimePicker>;
+
+export const StaticTimePicker = makePickerWithStateAndWrapper<BaseTimePickerProps>(StaticWrapper, {
+  name: 'MuiStaticTimePicker',
+  ...timePickerConfig,
 });
 
-export const KeyboardTimePicker = makePickerWithState<KeyboardTimePickerProps>({
-  useOptions,
-  Input: KeyboardDateInput,
-  useState: useKeyboardPickerState,
-  DefaultToolbarComponent: TimePickerToolbar,
-  getCustomProps: props => ({
-    refuse: props.ampm ? /[^\dap]+/gi : /[^\d]+/gi,
-  }),
-});
-
-TimePicker.defaultProps = defaultProps;
-
-KeyboardTimePicker.defaultProps = defaultProps;
+export type StaticTimePickerProps = React.ComponentProps<typeof StaticTimePicker>;

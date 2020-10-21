@@ -18,13 +18,13 @@ function inject(node, id) {
       type: 'element',
       tagName: 'a',
       children: [{ type: 'text', value: '#' }],
-      properties: { href: '#' + id, className: ['anchor-link-style'] },
+      properties: { href: `#${id}`, className: ['anchor-link-style'] },
     },
   ];
 }
 
-module.exports = () => tree => {
-  visit(tree, 'heading', node => {
+module.exports = () => (tree) => {
+  visit(tree, 'heading', (node) => {
     const { data } = node;
     const id = data && data.hProperties && data.hProperties.id;
 

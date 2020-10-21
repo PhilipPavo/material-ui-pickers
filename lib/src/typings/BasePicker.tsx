@@ -1,59 +1,79 @@
-import { MaterialUiPickersDate } from './date';
-import { WrapperVariant } from '../wrappers/Wrapper';
 import { ParsableDate } from '../constants/prop-types';
-import { ToolbarComponentProps } from '../Picker/Picker';
+import { ToolbarComponentProps } from '../Picker/SharedPickerProps';
 
-export interface BasePickerProps {
-  /** Picker value */
-  value: ParsableDate;
-  /** onChange callback @DateIOType */
-  onChange: (date: MaterialUiPickersDate) => void;
+export interface BasePickerProps<TInputValue = ParsableDate, TDateValue = unknown> {
   /**
-   * Auto accept date on selection
-   * @default false
+   * Picker value.
    */
-  autoOk?: boolean;
-  /** Format string */
-  format?: string;
-  /** Disable datepicker and text field */
+  value: TInputValue;
+  /**
+   * onChange callback @DateIOType.
+   */
+  onChange: (date: TDateValue, keyboardInputValue?: string) => void;
+  /**
+   * If `true` picker will immediately close after submitting full date.
+   *
+   * @default `true` for Desktop, `false` for Mobile (based on the chosen wrapper and `desktopModeMediaQuery` prop).
+   */
+  disableCloseOnSelect?: boolean;
+  /**
+   * Format string.
+   */
+  inputFormat?: string;
+  /**
+   * Disable picker and text field.
+   */
   disabled?: boolean;
-  /** Dynamic formatter of text field value @DateIOType */
-  labelFunc?: (date: MaterialUiPickersDate, invalidLabel: string) => string;
-  /** Date that will be initially highlighted if null was passed */
-  initialFocusedDate?: ParsableDate;
   /**
-   * Message displaying in text field if date is invalid (doesn't work in keyboard mode)
-   * @default 'unknown'
+   * Make picker read only.
    */
-  invalidLabel?: string;
+  readOnly?: boolean;
   /**
-   * Message displaying in text field, if null passed (doesn't work in keyboard mode)
-   * @default ' '
+   * Callback fired when date is accepted @DateIOType.
    */
-  emptyLabel?: string;
-  /** Callback fired when date is accepted @DateIOType */
-  onAccept?: (date: MaterialUiPickersDate) => void;
-  /** Callback fired when new error should be displayed
-   * (!! This is a side effect. Be careful if you want to rerender the component) @DateIOType
+  onAccept?: (date: TDateValue | null) => void;
+  /**
+   * On open callback.
    */
-  onError?: (error: React.ReactNode, value: MaterialUiPickersDate | ParsableDate) => void;
-  /** On open callback */
   onOpen?: () => void;
-  /** On close callback */
+  /**
+   * On close callback.
+   */
   onClose?: () => void;
-  /** Controlled picker open state */
+  /**
+   * Controlled picker open state.
+   */
   open?: boolean;
   /**
-   * Hide toolbar and show only date/time views
-   * @default false
+   * Show toolbar even in desktop mode.
    */
-  disableToolbar?: boolean;
+  showToolbar?: boolean;
   /**
-   * Force rendering in particular orientation
-   * @default "portrait"
+   * Force rendering in particular orientation.
    */
   orientation?: 'portrait' | 'landscape';
-  /** Component that will replace default toolbar renderer */
+  /**
+   * Component that will replace default toolbar renderer.
+   */
   ToolbarComponent?: React.ComponentType<ToolbarComponentProps>;
-  variant?: WrapperVariant;
+  /**
+   * Mobile picker title, displaying in the toolbar.
+   *
+   * @default "SELECT DATE"
+   */
+  toolbarTitle?: React.ReactNode;
+  /**
+   * Mobile picker date value placeholder, displaying if `value` === `null`.
+   *
+   * @default "–"
+   */
+  toolbarPlaceholder?: React.ReactNode;
+  /**
+   * Date format, that is displaying in toolbar.
+   */
+  toolbarFormat?: string;
+  /**
+   * className applied to the root component.
+   */
+  className?: string;
 }

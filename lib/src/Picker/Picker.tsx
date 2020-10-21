@@ -1,172 +1,182 @@
 import * as React from 'react';
 import clsx from 'clsx';
-import Calendar from '../views/Calendar/Calendar';
-import { useUtils } from '../_shared/hooks/useUtils';
+import { makeStyles } from '@material-ui/core/styles';
 import { useViews } from '../_shared/hooks/useViews';
 import { ClockView } from '../views/Clock/ClockView';
-import { makeStyles } from '@material-ui/core/styles';
-import { YearSelection } from '../views/Year/YearView';
+import { DateTimePickerView } from '../DateTimePicker';
 import { BasePickerProps } from '../typings/BasePicker';
-import { MaterialUiPickersDate } from '../typings/date';
-import { MonthSelection } from '../views/Month/MonthView';
-import { BaseTimePickerProps } from '../TimePicker/TimePicker';
-import { BaseDatePickerProps } from '../DatePicker/DatePicker';
+import { DatePickerView } from '../DatePicker/DatePicker';
+import { CalendarView } from '../views/Calendar/CalendarView';
+import { withDefaultProps } from '../_shared/withDefaultProps';
+import { KeyboardDateInput } from '../_shared/KeyboardDateInput';
 import { useIsLandscape } from '../_shared/hooks/useIsLandscape';
-import { datePickerDefaultProps } from '../constants/prop-types';
-import { DIALOG_WIDTH_WIDER, DIALOG_WIDTH, VIEW_HEIGHT } from '../constants/dimensions';
+import { DIALOG_WIDTH, VIEW_HEIGHT } from '../constants/dimensions';
+import { PickerSelectionState } from '../_shared/hooks/usePickerState';
+import { WrapperVariantContext } from '../wrappers/WrapperVariantContext';
+import { MobileKeyboardInputView } from '../views/MobileKeyboardInputView';
+import {
+  WithViewsProps,
+  AnyPickerView,
+  SharedPickerProps,
+  CalendarAndClockProps,
+} from './SharedPickerProps';
 
-const viewsMap = {
-  year: YearSelection,
-  month: MonthSelection,
-  date: Calendar,
-  hours: ClockView,
-  minutes: ClockView,
-  seconds: ClockView,
-};
-
-export type PickerView = keyof typeof viewsMap;
-
-export type ToolbarComponentProps = BaseDatePickerProps &
-  BaseTimePickerProps & {
-    views: PickerView[];
-    openView: PickerView;
-    date: MaterialUiPickersDate;
-    setOpenView: (view: PickerView) => void;
-    onChange: (date: MaterialUiPickersDate, isFinish?: boolean) => void;
-    // TODO move out, cause it is DateTimePickerOnly
-    hideTabs?: boolean;
-    dateRangeIcon?: React.ReactNode;
-    timeIcon?: React.ReactNode;
-    isLandscape: boolean;
-  };
-
-export interface PickerViewProps extends BaseDatePickerProps, BaseTimePickerProps {
-  views: PickerView[];
-  openTo: PickerView;
-  disableToolbar?: boolean;
-  ToolbarComponent: React.ComponentType<ToolbarComponentProps>;
+export interface ExportedPickerProps<TView extends AnyPickerView>
+  extends Omit<BasePickerProps, 'value' | 'onChange'>,
+    CalendarAndClockProps<unknown>,
+    WithViewsProps<TView> {
   // TODO move out, cause it is DateTimePickerOnly
   hideTabs?: boolean;
   dateRangeIcon?: React.ReactNode;
   timeIcon?: React.ReactNode;
 }
 
-interface PickerProps extends PickerViewProps {
-  date: MaterialUiPickersDate;
-  orientation?: BasePickerProps['orientation'];
-  onChange: (date: MaterialUiPickersDate, isFinish?: boolean) => void;
-}
+export type PickerProps<
+  TView extends AnyPickerView,
+  TInputValue = any,
+  TDateValue = any
+> = ExportedPickerProps<TView> & SharedPickerProps<TInputValue, TDateValue>;
 
-const useStyles = makeStyles(
+const muiComponentConfig = { name: 'MuiPickersBasePicker' };
+
+export const useStyles = makeStyles(
   {
-    container: {
+    root: {
       display: 'flex',
       flexDirection: 'column',
     },
-    containerLandscape: {
+    landscape: {
       flexDirection: 'row',
     },
     pickerView: {
       overflowX: 'hidden',
-      minHeight: VIEW_HEIGHT,
-      minWidth: DIALOG_WIDTH,
-      maxWidth: DIALOG_WIDTH_WIDER,
+      width: DIALOG_WIDTH,
+      maxHeight: VIEW_HEIGHT,
       display: 'flex',
       flexDirection: 'column',
-      justifyContent: 'center',
+      margin: '0 auto',
     },
     pickerViewLandscape: {
       padding: '0 8px',
     },
   },
-  { name: 'MuiPickersBasePicker' }
+  muiComponentConfig
 );
 
-export const Picker: React.FunctionComponent<PickerProps> = ({
-  date,
-  views,
-  disableToolbar,
-  onChange,
-  openTo,
-  minDate: unparsedMinDate,
-  maxDate: unparsedMaxDate,
-  ToolbarComponent,
-  orientation,
-  ...rest
-}) => {
-  const utils = useUtils();
-  const classes = useStyles();
-  const isLandscape = useIsLandscape(orientation);
-  const { openView, setOpenView, handleChangeAndOpenNext } = useViews(views, openTo, onChange);
+const MobileKeyboardTextFieldProps = { fullWidth: true };
 
-  const minDate = React.useMemo(() => utils.date(unparsedMinDate)!, [unparsedMinDate, utils]);
-  const maxDate = React.useMemo(() => utils.date(unparsedMaxDate)!, [unparsedMaxDate, utils]);
+const isDatePickerView = (view: DateTimePickerView) =>
+  view === 'year' || view === 'month' || view === 'date';
+
+function Picker({
+  className,
+  date,
+  DateInputProps,
+  isMobileKeyboardViewOpen,
+  onDateChange,
+  openTo = 'date',
+  orientation,
+  showToolbar,
+  toggleMobileKeyboardView,
+  ToolbarComponent = () => null,
+  toolbarFormat,
+  toolbarPlaceholder,
+  toolbarTitle,
+  views = ['year', 'month', 'date', 'hours', 'minutes', 'seconds'],
+  ...other
+}: PickerProps<AnyPickerView>) {
+  const classes = useStyles();
+  const isLandscape = useIsLandscape(views, orientation);
+  const wrapperVariant = React.useContext(WrapperVariantContext);
+
+  const toShowToolbar =
+    typeof showToolbar === 'undefined' ? wrapperVariant !== 'desktop' : showToolbar;
+
+  const handleDateChange = React.useCallback(
+    (date: unknown, selectionState?: PickerSelectionState) => {
+      onDateChange(date, wrapperVariant, selectionState);
+    },
+    [onDateChange, wrapperVariant]
+  );
+
+  const { openView, nextView, previousView, setOpenView, handleChangeAndOpenNext } = useViews({
+    views,
+    openTo,
+    onChange: handleDateChange,
+    isMobileKeyboardViewOpen,
+    toggleMobileKeyboardView,
+  });
 
   return (
     <div
-      className={clsx(classes.container, {
-        [classes.containerLandscape]: isLandscape,
+      className={clsx(classes.root, className, {
+        [classes.landscape]: isLandscape,
       })}
     >
-      {!disableToolbar && (
+      {toShowToolbar && (
         <ToolbarComponent
-          {...rest}
+          {...other}
           views={views}
           isLandscape={isLandscape}
           date={date}
-          onChange={onChange}
+          onChange={handleDateChange}
           setOpenView={setOpenView}
           openView={openView}
+          toolbarTitle={toolbarTitle}
+          toolbarFormat={toolbarFormat}
+          toolbarPlaceholder={toolbarPlaceholder}
+          isMobileKeyboardViewOpen={isMobileKeyboardViewOpen}
+          toggleMobileKeyboardView={toggleMobileKeyboardView}
         />
       )}
 
-      <div className={clsx(classes.pickerView, { [classes.pickerViewLandscape]: isLandscape })}>
-        {openView === 'year' && (
-          <YearSelection
-            {...rest}
-            date={date}
-            onChange={handleChangeAndOpenNext}
-            minDate={minDate}
-            maxDate={maxDate}
-          />
-        )}
+      <div
+        className={clsx(classes.pickerView, {
+          [classes.pickerViewLandscape]: isLandscape,
+        })}
+      >
+        {isMobileKeyboardViewOpen ? (
+          <MobileKeyboardInputView>
+            <KeyboardDateInput
+              {...DateInputProps}
+              ignoreInvalidInputs
+              disableOpenPicker
+              TextFieldProps={MobileKeyboardTextFieldProps}
+            />
+          </MobileKeyboardInputView>
+        ) : (
+          <React.Fragment>
+            {(openView === 'year' || openView === 'month' || openView === 'date') && (
+              <CalendarView
+                date={date}
+                changeView={setOpenView}
+                // @ts-ignore
+                views={views}
+                onChange={handleChangeAndOpenNext}
+                view={openView as DatePickerView}
+                {...other}
+              />
+            )}
 
-        {openView === 'month' && (
-          <MonthSelection
-            {...rest}
-            date={date}
-            onChange={handleChangeAndOpenNext}
-            minDate={minDate}
-            maxDate={maxDate}
-          />
-        )}
-
-        {openView === 'date' && (
-          <Calendar
-            {...rest}
-            date={date}
-            onChange={handleChangeAndOpenNext}
-            minDate={minDate}
-            maxDate={maxDate}
-          />
-        )}
-
-        {(openView === 'hours' || openView === 'minutes' || openView === 'seconds') && (
-          <ClockView
-            {...rest}
-            date={date}
-            type={openView}
-            onHourChange={handleChangeAndOpenNext}
-            onMinutesChange={handleChangeAndOpenNext}
-            onSecondsChange={handleChangeAndOpenNext}
-          />
+            {(openView === 'hours' || openView === 'minutes' || openView === 'seconds') && (
+              <ClockView
+                {...other}
+                date={date}
+                type={openView as 'hours' | 'minutes' | 'seconds'}
+                onDateChange={handleDateChange}
+                onChange={handleChangeAndOpenNext}
+                openNextView={() => setOpenView(nextView)}
+                openPreviousView={() => setOpenView(previousView)}
+                nextViewAvailable={!nextView}
+                previousViewAvailable={!previousView || isDatePickerView(previousView)}
+                showViewSwitcher={wrapperVariant === 'desktop'}
+              />
+            )}
+          </React.Fragment>
         )}
       </div>
     </div>
   );
-};
+}
 
-Picker.defaultProps = {
-  ...datePickerDefaultProps,
-  views: Object.keys(viewsMap),
-} as any;
+export default withDefaultProps(muiComponentConfig, Picker);

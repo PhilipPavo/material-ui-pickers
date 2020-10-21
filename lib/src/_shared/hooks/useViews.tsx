@@ -1,31 +1,72 @@
 import * as React from 'react';
-import { MaterialUiPickersDate } from '../..';
-import { PickerView } from '../../Picker/Picker';
 import { arrayIncludes } from '../../_helpers/utils';
+import { PickerSelectionState } from './usePickerState';
+import { AnyPickerView } from '../../Picker/SharedPickerProps';
 
-export function useViews(
-  views: PickerView[],
-  openTo: PickerView,
-  onChange: (date: MaterialUiPickersDate, isFinish?: boolean) => void
-) {
+export type PickerOnChangeFn<TDate> = (
+  date: TDate | null,
+  selectionState?: PickerSelectionState
+) => void;
+
+export function useViews({
+  views,
+  openTo,
+  onChange,
+  isMobileKeyboardViewOpen,
+  toggleMobileKeyboardView,
+}: {
+  views: AnyPickerView[];
+  openTo: AnyPickerView;
+  onChange: PickerOnChangeFn<unknown>;
+  isMobileKeyboardViewOpen: boolean;
+  toggleMobileKeyboardView: () => void;
+}) {
   const [openView, setOpenView] = React.useState(
     openTo && arrayIncludes(views, openTo) ? openTo : views[0]
   );
 
-  const handleChangeAndOpenNext = React.useCallback(
-    (date: MaterialUiPickersDate, isFinish?: boolean) => {
-      const nextViewToOpen = views[views.indexOf(openView!) + 1];
-      if (isFinish && nextViewToOpen) {
-        // do not close picker if needs to show next view
-        onChange(date, false);
-        setOpenView(nextViewToOpen);
-        return;
+  const setOpenViewEnhanced = React.useCallback(
+    (...args: Parameters<typeof setOpenView>) => {
+      if (isMobileKeyboardViewOpen) {
+        toggleMobileKeyboardView();
       }
 
-      onChange(date, Boolean(isFinish));
+      setOpenView(...args);
     },
-    [onChange, openView, views]
+    [isMobileKeyboardViewOpen, toggleMobileKeyboardView]
   );
 
-  return { handleChangeAndOpenNext, openView, setOpenView };
+  const previousView = views[views.indexOf(openView!) - 1];
+  const nextView = views[views.indexOf(openView!) + 1];
+
+  const openNext = React.useCallback(() => {
+    if (nextView) {
+      setOpenViewEnhanced(nextView);
+    }
+  }, [nextView, setOpenViewEnhanced]);
+
+  const handleChangeAndOpenNext = React.useCallback(
+    (date: unknown, currentViewSelectionState?: PickerSelectionState) => {
+      const isSelectionFinishedOnCurrentView = currentViewSelectionState === 'finish';
+      const globalSelectionState =
+        isSelectionFinishedOnCurrentView && Boolean(nextView)
+          ? 'partial'
+          : currentViewSelectionState;
+
+      onChange(date, globalSelectionState);
+      if (isSelectionFinishedOnCurrentView) {
+        openNext();
+      }
+    },
+    [nextView, onChange, openNext]
+  );
+
+  return {
+    nextView,
+    previousView,
+    openNext,
+    handleChangeAndOpenNext,
+    openView,
+    setOpenView: setOpenViewEnhanced,
+  };
 }

@@ -1,364 +1,245 @@
 import * as React from 'react';
-import * as PropTypes from 'prop-types';
-import Day from './Day';
-import DayWrapper from './DayWrapper';
-import CalendarHeader from './CalendarHeader';
-import CircularProgress from '@material-ui/core/CircularProgress';
-import SlideTransition, { SlideDirection } from './SlideTransition';
-import { Theme } from '@material-ui/core/styles';
-import { VariantContext } from '../../wrappers/Wrapper';
-import { MaterialUiPickersDate } from '../../typings/date';
-import { runKeyHandler } from '../../_shared/hooks/useKeyDown';
-import { IconButtonProps } from '@material-ui/core/IconButton';
-import { withStyles, WithStyles } from '@material-ui/core/styles';
-import { findClosestEnabledDate } from '../../_helpers/date-utils';
-import { withUtils, WithUtilsProps } from '../../_shared/WithUtils';
+import clsx from 'clsx';
+import Typography from '@material-ui/core/Typography';
+import { makeStyles, useTheme } from '@material-ui/core/styles';
+import { Day, DayProps } from './Day';
+import { useUtils, useNow } from '../../_shared/hooks/useUtils';
+import { PickerOnChangeFn } from '../../_shared/hooks/useViews';
+import { DAY_SIZE, DAY_MARGIN } from '../../constants/dimensions';
+import { useDefaultProps } from '../../_shared/withDefaultProps';
+import { PickerSelectionState } from '../../_shared/hooks/usePickerState';
+import { useGlobalKeyDown, keycode } from '../../_shared/hooks/useKeyDown';
+import { SlideTransition, SlideDirection, SlideTransitionProps } from './SlideTransition';
 
-export interface OutterCalendarProps {
-  /** Left arrow icon */
-  leftArrowIcon?: React.ReactNode;
-  /** Right arrow icon */
-  rightArrowIcon?: React.ReactNode;
-  /** Custom renderer for day @DateIOType */
+export interface ExportedCalendarProps<TDate>
+  extends Pick<
+    DayProps<TDate>,
+    'disableHighlightToday' | 'showDaysOutsideCurrentMonth' | 'allowSameDateSelection'
+  > {
+  /**
+   * Calendar onChange.
+   */
+  onChange: PickerOnChangeFn<TDate>;
+  /**
+   * Custom renderer for day. Check [DayComponentProps api](https://material-ui-pickers.dev/api/Day) @DateIOType.
+   */
   renderDay?: (
-    day: MaterialUiPickersDate,
-    selectedDate: MaterialUiPickersDate,
-    dayInCurrentMonth: boolean,
-    dayComponent: JSX.Element
+    day: TDate,
+    selectedDates: (TDate | null)[],
+    DayComponentProps: DayProps<TDate>
   ) => JSX.Element;
   /**
-   * Enables keyboard listener for moving between days in calendar
-   * @default true
+   * Enables keyboard listener for moving between days in calendar.
+   *
+   * @default currentWrapper !== 'static'
    */
   allowKeyboardControl?: boolean;
   /**
-   * Props to pass to left arrow button
-   * @type {Partial<IconButtonProps>}
+   * If `true` renders `LoadingComponent` in calendar instead of calendar view.
+   * Can be used to preload information and show it in calendar.
+   *
+   * @default false
    */
-  leftArrowButtonProps?: Partial<IconButtonProps>;
+  loading?: boolean;
   /**
-   * Props to pass to right arrow button
-   * @type {Partial<IconButtonProps>}
+   * Component displaying when passed `loading` true.
+   *
+   * @default () => "..."
    */
-  rightArrowButtonProps?: Partial<IconButtonProps>;
-  /** Disable specific date @DateIOType */
-  shouldDisableDate?: (day: MaterialUiPickersDate) => boolean;
-  /** Callback firing on month change. Return promise to render spinner till it will not be resolved @DateIOType */
-  onMonthChange?: (date: MaterialUiPickersDate) => void | Promise<void>;
-  /** Custom loading indicator  */
-  loadingIndicator?: JSX.Element;
+  renderLoading?: () => React.ReactNode;
 }
 
-export interface CalendarProps
-  extends OutterCalendarProps,
-    WithUtilsProps,
-    WithStyles<typeof styles, true> {
-  /** Calendar Date @DateIOType */
-  date: MaterialUiPickersDate;
-  /** Calendar onChange */
-  onChange: (date: MaterialUiPickersDate, isFinish?: boolean) => void;
-  /** Min date @DateIOType */
-  minDate?: MaterialUiPickersDate;
-  /** Max date @DateIOType */
-  maxDate?: MaterialUiPickersDate;
-  /** Disable past dates */
-  disablePast?: boolean;
-  /** Disable future dates */
-  disableFuture?: boolean;
-}
-
-export interface CalendarState {
+export interface CalendarProps<TDate> extends ExportedCalendarProps<TDate> {
+  date: TDate | null | Array<TDate | null>;
+  isDateDisabled: (day: TDate) => boolean;
   slideDirection: SlideDirection;
-  currentMonth: MaterialUiPickersDate;
-  lastDate?: MaterialUiPickersDate;
-  loadingQueue: number;
+  currentMonth: TDate;
+  reduceAnimations: boolean;
+  focusedDay: TDate | null;
+  changeFocusedDay: (newFocusedDay: TDate) => void;
+  isMonthSwitchingAnimating: boolean;
+  onMonthSwitchingAnimationEnd: () => void;
+  TransitionProps?: Partial<SlideTransitionProps>;
+  className?: string;
 }
 
-const KeyDownListener = ({ onKeyDown }: { onKeyDown: (e: KeyboardEvent) => void }) => {
-  React.useEffect(() => {
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [onKeyDown]);
-
-  return null;
-};
-
-export class Calendar extends React.Component<CalendarProps, CalendarState> {
-  static contextType = VariantContext;
-  static propTypes: any = {
-    renderDay: PropTypes.func,
-    shouldDisableDate: PropTypes.func,
-    allowKeyboardControl: PropTypes.bool,
+const muiComponentConfig = { name: 'MuiPickersCalendar' };
+export const useStyles = makeStyles((theme) => {
+  const weeksContainerHeight = (DAY_SIZE + DAY_MARGIN * 4) * 6;
+  return {
+    root: {
+      minHeight: weeksContainerHeight,
+    },
+    loadingContainer: {
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: weeksContainerHeight,
+    },
+    weekContainer: {
+      overflow: 'hidden',
+    },
+    week: {
+      margin: `${DAY_MARGIN}px 0`,
+      display: 'flex',
+      justifyContent: 'center',
+    },
+    iconButton: {
+      zIndex: 1,
+      backgroundColor: theme.palette.background.paper,
+    },
+    previousMonthButton: {
+      marginRight: 12,
+    },
+    daysHeader: {
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    weekDayLabel: {
+      width: 36,
+      height: 40,
+      margin: '0 2px',
+      textAlign: 'center',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      color: theme.palette.text.secondary,
+    },
   };
+}, muiComponentConfig);
 
-  static defaultProps: Partial<CalendarProps> = {
-    minDate: new Date('1900-01-01'),
-    maxDate: new Date('2100-01-01'),
-    disablePast: false,
-    disableFuture: false,
-    allowKeyboardControl: true,
-  };
+export function Calendar<TDate>(props: CalendarProps<TDate>) {
+  const {
+    allowKeyboardControl,
+    allowSameDateSelection,
+    changeFocusedDay,
+    className,
+    currentMonth,
+    date,
+    disableHighlightToday,
+    focusedDay,
+    isDateDisabled,
+    isMonthSwitchingAnimating,
+    loading,
+    onChange,
+    onMonthSwitchingAnimationEnd,
+    reduceAnimations,
+    renderDay,
+    renderLoading = () => <span data-mui-test="loading-progress">...</span>,
+    showDaysOutsideCurrentMonth,
+    slideDirection,
+    TransitionProps,
+  } = useDefaultProps(props, muiComponentConfig);
 
-  static getDerivedStateFromProps(nextProps: CalendarProps, state: CalendarState) {
-    const { utils, date: nextDate } = nextProps;
+  const now = useNow<TDate>();
+  const utils = useUtils<TDate>();
+  const theme = useTheme();
+  const classes = useStyles();
 
-    if (!utils.isEqual(nextDate, state.lastDate)) {
-      const nextMonth = utils.getMonth(nextDate);
-      const lastDate = state.lastDate || nextDate;
-      const lastMonth = utils.getMonth(lastDate);
+  const handleDaySelect = React.useCallback(
+    (day: TDate, isFinish: PickerSelectionState = 'finish') => {
+      // TODO possibly buggy line figure out and add tests
+      const finalDate = Array.isArray(date) ? day : utils.mergeDateAndTime(day, date || now);
 
-      return {
-        lastDate: nextDate,
-        currentMonth: nextProps.utils.startOfMonth(nextDate),
-        // prettier-ignore
-        slideDirection: nextMonth === lastMonth
-          ? state.slideDirection
-          : utils.isAfterDay(nextDate, lastDate)
-            ? 'left'
-            : 'right'
-      };
-    }
+      onChange(finalDate, isFinish);
+    },
+    [date, now, onChange, utils]
+  );
 
-    return null;
-  }
+  const initialDate = Array.isArray(date) ? date[0] : date;
 
-  state: CalendarState = {
-    slideDirection: 'left',
-    currentMonth: this.props.utils.startOfMonth(this.props.date),
-    loadingQueue: 0,
-  };
+  const nowFocusedDay = focusedDay || initialDate || now;
+  useGlobalKeyDown(Boolean(allowKeyboardControl), {
+    [keycode.ArrowUp]: () => changeFocusedDay(utils.addDays(nowFocusedDay, -7)),
+    [keycode.ArrowDown]: () => changeFocusedDay(utils.addDays(nowFocusedDay, 7)),
+    [keycode.ArrowLeft]: () =>
+      changeFocusedDay(utils.addDays(nowFocusedDay, theme.direction === 'ltr' ? -1 : 1)),
+    [keycode.ArrowRight]: () =>
+      changeFocusedDay(utils.addDays(nowFocusedDay, theme.direction === 'ltr' ? 1 : -1)),
+    [keycode.Home]: () => changeFocusedDay(utils.startOfWeek(nowFocusedDay)),
+    [keycode.End]: () => changeFocusedDay(utils.endOfWeek(nowFocusedDay)),
+    [keycode.PageUp]: () => changeFocusedDay(utils.getNextMonth(nowFocusedDay)),
+    [keycode.PageDown]: () => changeFocusedDay(utils.getPreviousMonth(nowFocusedDay)),
+  });
 
-  componentDidMount() {
-    const { date, minDate, maxDate, utils, disablePast, disableFuture } = this.props;
+  const currentMonthNumber = utils.getMonth(currentMonth);
+  const selectedDates = (Array.isArray(date) ? date : [date])
+    .filter(Boolean)
+    .map((selectedDateItem) => selectedDateItem && utils.startOfDay(selectedDateItem));
 
-    if (this.shouldDisableDate(date)) {
-      const closestEnabledDate = findClosestEnabledDate({
-        date,
-        utils,
-        minDate: utils.date(minDate),
-        maxDate: utils.date(maxDate),
-        disablePast: Boolean(disablePast),
-        disableFuture: Boolean(disableFuture),
-        shouldDisableDate: this.shouldDisableDate,
-      });
-
-      this.handleDaySelect(closestEnabledDate, false);
-    }
-  }
-
-  private pushToLoadingQueue = () => {
-    const loadingQueue = this.state.loadingQueue + 1;
-    this.setState({ loadingQueue });
-  };
-
-  private popFromLoadingQueue = () => {
-    let loadingQueue = this.state.loadingQueue;
-    loadingQueue = loadingQueue <= 0 ? 0 : loadingQueue - 1;
-    this.setState({ loadingQueue });
-  };
-
-  handleChangeMonth = (newMonth: MaterialUiPickersDate, slideDirection: SlideDirection) => {
-    this.setState({ currentMonth: newMonth, slideDirection });
-
-    if (this.props.onMonthChange) {
-      const returnVal = this.props.onMonthChange(newMonth);
-      if (returnVal) {
-        this.pushToLoadingQueue();
-        returnVal.then(() => {
-          this.popFromLoadingQueue();
-        });
-      }
-    }
-  };
-
-  validateMinMaxDate = (day: MaterialUiPickersDate) => {
-    const { minDate, maxDate, utils, disableFuture, disablePast } = this.props;
-    const now = utils.date();
-
-    return Boolean(
-      (disableFuture && utils.isAfterDay(day, now)) ||
-        (disablePast && utils.isBeforeDay(day, now)) ||
-        (minDate && utils.isBeforeDay(day, utils.date(minDate))) ||
-        (maxDate && utils.isAfterDay(day, utils.date(maxDate)))
-    );
-  };
-
-  shouldDisablePrevMonth = () => {
-    const { utils, disablePast, minDate } = this.props;
-
-    const now = utils.date();
-    const firstEnabledMonth = utils.startOfMonth(
-      disablePast && utils.isAfter(now, utils.date(minDate)) ? now : utils.date(minDate)
-    );
-
-    return !utils.isBefore(firstEnabledMonth, this.state.currentMonth);
-  };
-
-  shouldDisableNextMonth = () => {
-    const { utils, disableFuture, maxDate } = this.props;
-
-    const now = utils.date();
-    const lastEnabledMonth = utils.startOfMonth(
-      disableFuture && utils.isBefore(now, utils.date(maxDate)) ? now : utils.date(maxDate)
-    );
-
-    return !utils.isAfter(lastEnabledMonth, this.state.currentMonth);
-  };
-
-  shouldDisableDate = (day: MaterialUiPickersDate) => {
-    const { shouldDisableDate } = this.props;
-
-    return this.validateMinMaxDate(day) || Boolean(shouldDisableDate && shouldDisableDate(day));
-  };
-
-  handleDaySelect = (day: MaterialUiPickersDate, isFinish = true) => {
-    const { date, utils } = this.props;
-
-    this.props.onChange(utils.mergeDateAndTime(day, date), isFinish);
-  };
-
-  moveToDay = (day: MaterialUiPickersDate) => {
-    const { utils } = this.props;
-
-    if (day && !this.shouldDisableDate(day)) {
-      if (utils.getMonth(day) !== utils.getMonth(this.state.currentMonth)) {
-        this.handleChangeMonth(utils.startOfMonth(day), 'left');
-      }
-
-      this.handleDaySelect(day, false);
-    }
-  };
-
-  handleKeyDown = (event: KeyboardEvent) => {
-    const { theme, date, utils } = this.props;
-
-    runKeyHandler(event, {
-      ArrowUp: () => this.moveToDay(utils.addDays(date, -7)),
-      ArrowDown: () => this.moveToDay(utils.addDays(date, 7)),
-      ArrowLeft: () => this.moveToDay(utils.addDays(date, theme.direction === 'ltr' ? -1 : 1)),
-      ArrowRight: () => this.moveToDay(utils.addDays(date, theme.direction === 'ltr' ? 1 : -1)),
-    });
-  };
-
-  private renderWeeks = () => {
-    const { utils, classes } = this.props;
-    const weeks = utils.getWeekArray(this.state.currentMonth);
-
-    return weeks.map(week => (
-      <div key={`week-${week[0]!.toString()}`} className={classes.week}>
-        {this.renderDays(week)}
+  return (
+    <React.Fragment>
+      <div className={classes.daysHeader}>
+        {utils.getWeekdays().map((day, i) => (
+          <Typography
+            aria-hidden
+            key={day + i.toString()}
+            variant="caption"
+            className={classes.weekDayLabel}
+          >
+            {day.charAt(0).toUpperCase()}
+          </Typography>
+        ))}
       </div>
-    ));
-  };
-
-  private renderDays = (week: MaterialUiPickersDate[]) => {
-    const { date, renderDay, utils } = this.props;
-
-    const now = utils.date();
-    const selectedDate = utils.startOfDay(date);
-    const currentMonthNumber = utils.getMonth(this.state.currentMonth);
-
-    return week.map(day => {
-      const disabled = this.shouldDisableDate(day);
-      const isDayInCurrentMonth = utils.getMonth(day) === currentMonthNumber;
-
-      let dayComponent = (
-        <Day
-          disabled={disabled}
-          current={utils.isSameDay(day, now)}
-          hidden={!isDayInCurrentMonth}
-          selected={utils.isSameDay(selectedDate, day)}
-        >
-          {utils.getDayText(day)}
-        </Day>
-      );
-
-      if (renderDay) {
-        dayComponent = renderDay(day, selectedDate, isDayInCurrentMonth, dayComponent);
-      }
-
-      return (
-        <DayWrapper
-          value={day}
-          key={day!.toString()}
-          disabled={disabled}
-          dayInCurrentMonth={isDayInCurrentMonth}
-          onSelect={this.handleDaySelect}
-        >
-          {dayComponent}
-        </DayWrapper>
-      );
-    });
-  };
-
-  render() {
-    const { currentMonth, slideDirection } = this.state;
-    const {
-      classes,
-      allowKeyboardControl,
-      leftArrowButtonProps,
-      leftArrowIcon,
-      rightArrowButtonProps,
-      rightArrowIcon,
-      loadingIndicator,
-    } = this.props;
-    const loadingElement = loadingIndicator ? loadingIndicator : <CircularProgress />;
-
-    return (
-      <React.Fragment>
-        {allowKeyboardControl && this.context !== 'static' && (
-          <KeyDownListener onKeyDown={this.handleKeyDown} />
-        )}
-
-        <CalendarHeader
-          currentMonth={currentMonth!}
-          slideDirection={slideDirection}
-          onMonthChange={this.handleChangeMonth}
-          leftArrowIcon={leftArrowIcon}
-          leftArrowButtonProps={leftArrowButtonProps}
-          rightArrowIcon={rightArrowIcon}
-          rightArrowButtonProps={rightArrowButtonProps}
-          disablePrevMonth={this.shouldDisablePrevMonth()}
-          disableNextMonth={this.shouldDisableNextMonth()}
-        />
-
+      {loading ? (
+        <div className={classes.loadingContainer}>{renderLoading()}</div>
+      ) : (
         <SlideTransition
+          transKey={currentMonthNumber}
+          onExited={onMonthSwitchingAnimationEnd}
+          reduceAnimations={reduceAnimations}
           slideDirection={slideDirection}
-          transKey={currentMonth!.toString()}
-          className={classes.transitionContainer}
+          className={clsx(classes.root, className)}
+          {...TransitionProps}
         >
-          <>
-            {(this.state.loadingQueue > 0 && (
-              <div className={classes.progressContainer}>{loadingElement}</div>
-            )) || <div>{this.renderWeeks()}</div>}
-          </>
+          <div role="grid" className={classes.weekContainer}>
+            {utils.getWeekArray(currentMonth).map((week) => (
+              <div role="row" key={`week-${week[0]}`} className={classes.week}>
+                {week.map((day) => {
+                  const disabled = isDateDisabled(day);
+                  const isDayInCurrentMonth = utils.getMonth(day) === currentMonthNumber;
+
+                  const dayProps: DayProps<TDate> = {
+                    key: (day as any)?.toString(),
+                    day,
+                    role: 'cell',
+                    isAnimating: isMonthSwitchingAnimating,
+                    disabled,
+                    allowKeyboardControl,
+                    allowSameDateSelection,
+                    focused:
+                      allowKeyboardControl &&
+                      Boolean(focusedDay) &&
+                      utils.isSameDay(day, nowFocusedDay),
+                    today: utils.isSameDay(day, now),
+                    inCurrentMonth: isDayInCurrentMonth,
+                    selected: selectedDates.some(
+                      (selectedDate) => selectedDate && utils.isSameDay(selectedDate, day)
+                    ),
+                    disableHighlightToday,
+                    showDaysOutsideCurrentMonth,
+                    focusable:
+                      allowKeyboardControl &&
+                      Boolean(nowFocusedDay) &&
+                      utils.toJsDate(nowFocusedDay).getDate() === utils.toJsDate(day).getDate(),
+                    onDayFocus: changeFocusedDay,
+                    onDaySelect: handleDaySelect,
+                  };
+
+                  return renderDay ? (
+                    renderDay(day, selectedDates, dayProps)
+                  ) : (
+                    <Day {...dayProps} />
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </SlideTransition>
-      </React.Fragment>
-    );
-  }
+      )}
+    </React.Fragment>
+  );
 }
 
-export const styles = (theme: Theme) => ({
-  transitionContainer: {
-    minHeight: 36 * 6,
-    marginTop: theme.spacing(1.5),
-  },
-  progressContainer: {
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  week: {
-    display: 'flex',
-    justifyContent: 'center',
-  },
-});
-
-export default withStyles(styles, {
-  name: 'MuiPickersCalendar',
-  withTheme: true,
-})(withUtils()(Calendar));
+Calendar.displayName = 'Calendar';

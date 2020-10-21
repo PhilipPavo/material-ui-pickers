@@ -3,17 +3,19 @@ const withCSS = require('@zeit/next-css');
 const withImages = require('next-images');
 const withTypescript = require('@zeit/next-typescript');
 const rehypePrism = require('@mapbox/rehype-prism');
-const headings = require('./utils/anchor-autolink');
 const withTM = require('next-transpile-modules');
 const slug = require('remark-slug');
 const webpack = require('webpack');
 const withBundleAnalyzer = require('@zeit/next-bundle-analyzer');
+const headings = require('./utils/anchor-autolink');
+const tableStyler = require('./utils/table-styler');
 
+// eslint-disable-next-line import/order
 const withMDX = require('@zeit/next-mdx')({
   extension: /\.(md|mdx)?$/,
   options: {
     hastPlugins: [rehypePrism],
-    mdPlugins: [slug, headings],
+    mdPlugins: [slug, headings, tableStyler],
   },
 });
 
@@ -23,7 +25,7 @@ module.exports = withBundleAnalyzer(
       withTypescript(
         withMDX(
           withTM({
-            webpack: config => {
+            webpack: (config) => {
               if (config.optimization.splitChunks.cacheGroups) {
                 // split all date libs to separate chunk
                 config.optimization.splitChunks.cacheGroups.dateLibs = {
@@ -35,13 +37,13 @@ module.exports = withBundleAnalyzer(
                 config.optimization.splitChunks.cacheGroups.pickers = {
                   name: 'pickers',
                   chunks: 'all',
-                  test: /[\\\/]node_modules[\\\/]@material-ui\/pickers[\\\/]/,
+                  test: /[\\/]node_modules[\\/]@material-ui\/pickers[\\/]/,
                 };
               }
 
               // Process examples to inject raw code strings
               config.module.rules.push({
-                test: /\.example\.(js|jsx)$/,
+                test: /\.example\.(js|jsx|tsx|ts)$/,
                 include: [path.resolve(__dirname, 'pages')],
                 use: [
                   { loader: 'next-babel-loader' },

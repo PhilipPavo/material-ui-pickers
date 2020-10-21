@@ -1,48 +1,53 @@
-import { MaterialUiPickersDate } from './typings/date';
-import { KeyboardTimePickerProps } from './TimePicker';
-import { DatePickerProps, KeyboardDatePickerProps } from './DatePicker';
-import { DateTimePickerProps, KeyboardDateTimePickerProps } from './DateTimePicker';
+export * from './DatePicker';
 
-export type TimePickerProps = KeyboardTimePickerProps;
+export { DatePickerToolbar } from './DatePicker/DatePickerToolbar';
 
-export type KeyboardTimePickerProps = KeyboardTimePickerProps;
+export * from './TimePicker';
 
-export type DatePickerProps = DatePickerProps;
+export { TimePickerToolbar } from './TimePicker/TimePickerToolbar';
 
-export type KeyboardDatePickerProps = KeyboardDatePickerProps;
+export * from './DateTimePicker';
 
-export type DateTimePickerProps = DateTimePickerProps;
+export { DateTimePickerToolbar } from './DateTimePicker/DateTimePickerToolbar';
 
-export type KeyboardDateTimePickerProps = KeyboardDateTimePickerProps;
+export * from './DateRangePicker/DateRangePicker';
 
-export type MaterialUiPickersDate = MaterialUiPickersDate;
+export { DateRangePickerToolbar } from './DateRangePicker/DateRangePickerToolbar';
 
-export { DatePicker, KeyboardDatePicker } from './DatePicker';
+export { Calendar as PickersCalendar } from './views/Calendar/Calendar';
 
-export { TimePicker, KeyboardTimePicker } from './TimePicker';
+export { CalendarView as PickersCalendarView } from './views/Calendar/CalendarView';
 
-export { DateTimePicker, KeyboardDateTimePicker } from './DateTimePicker';
+export { Day as PickersDay } from './views/Calendar/Day';
 
-export { default as Calendar } from './views/Calendar/Calendar';
+export { ClockView as PickersClockView } from './views/Clock/ClockView';
 
-export { default as Day } from './views/Calendar/Day';
+export { Clock as PickersClock } from './views/Clock/Clock';
 
-export { default as TimePickerView, ClockView } from './views/Clock/ClockView';
-
-export { default as Clock } from './views/Clock/Clock';
-
-export { Picker } from './Picker/Picker';
-
-export { makePickerWithState } from './Picker/makePickerWithState';
-
-export { validate } from './_helpers/text-field-helper';
+export { default as PickersBasePickers } from './Picker/Picker';
 
 export { useUtils } from './_shared/hooks/useUtils';
 
 export { usePickerState } from './_shared/hooks/usePickerState';
 
-export { useStaticState } from './_shared/hooks/useStaticState';
+export * from './typings/BasePicker';
 
-export { useKeyboardPickerState } from './_shared/hooks/useKeyboardPickerState';
+export {
+  default as LocalizationProvider,
+  MuiPickersAdapterContext as MuiPickersContext,
+} from './LocalizationProvider';
 
-export { default as MuiPickersUtilsProvider, MuiPickersContext } from './MuiPickersUtilsProvider';
+// TODO replace the following syntax with new ts export type { } syntax when will be supported by rollup
+
+export type PickersCalendarProps<TDate> = import('./views/Calendar/Calendar').CalendarProps<TDate>;
+export type PickersCalendarViewProps<
+  TDate
+> = import('./views/Calendar/CalendarView').CalendarViewProps<TDate>;
+export type PickersDayProps<TDate> = import('./views/Calendar/Day').DayProps<TDate>;
+export type PickersClockViewProps<TDate> = import('./views/Clock/ClockView').ClockViewProps<TDate>;
+export type PickersClockProps<TDate> = import('./views/Clock/Clock').ClockProps<TDate>;
+export type ToolbarComponentProps = import('./Picker/SharedPickerProps').ToolbarComponentProps;
+export type DateRangeDelimiterProps = import('./DateRangePicker/DateRangeDelimiter').DateRangeDelimiterProps;
+export type LocalizationProviderProps = import('./LocalizationProvider').LocalizationProviderProps;
+export type DateRange<T> = import('./DateRangePicker/RangeTypes').DateRange<T>;
+export type RangeInput<T> = import('./DateRangePicker/RangeTypes').RangeInput<T>;

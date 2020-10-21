@@ -1,63 +1,52 @@
 import * as React from 'react';
-import * as PropTypes from 'prop-types';
 import clsx from 'clsx';
-import ToolbarText from './ToolbarText';
 import Button, { ButtonProps } from '@material-ui/core/Button';
-import { ExtendMui } from '../typings/extendMui';
+import { makeStyles } from '@material-ui/core/styles';
 import { TypographyProps } from '@material-ui/core/Typography';
-import { createStyles, withStyles, WithStyles } from '@material-ui/core/styles';
+import ToolbarText from './ToolbarText';
+import { ExtendMui } from '../typings/helpers';
 
-export interface ToolbarButtonProps
-  extends ExtendMui<ButtonProps, 'variant'>,
-    WithStyles<typeof styles> {
-  variant: TypographyProps['variant'];
-  selected: boolean;
-  label: string;
+export interface ToolbarButtonProps extends ExtendMui<ButtonProps, 'value' | 'variant'> {
   align?: TypographyProps['align'];
+  selected: boolean;
   typographyClassName?: string;
+  value: React.ReactNode;
+  variant: TypographyProps['variant'];
 }
 
-const ToolbarButton: React.FunctionComponent<ToolbarButtonProps> = ({
-  classes,
-  className = null,
-  label,
-  selected,
-  variant,
-  align,
-  typographyClassName,
-  ...other
-}) => {
+export const useStyles = makeStyles(
+  {
+    root: {
+      padding: 0,
+      minWidth: '16px',
+      textTransform: 'none',
+    },
+  },
+  { name: 'MuiPickersToolbarButton' }
+);
+
+export const ToolbarButton: React.FunctionComponent<ToolbarButtonProps> = (props) => {
+  const { align, className, selected, typographyClassName, value, variant, ...other } = props;
+  const classes = useStyles();
+
   return (
-    <Button variant="text" className={clsx(classes.toolbarBtn, className)} {...other}>
+    <Button
+      data-mui-test="toolbar-button"
+      variant="text"
+      className={clsx(classes.root, className)}
+      {...other}
+    >
       <ToolbarText
         align={align}
         className={typographyClassName}
         variant={variant}
-        label={label}
+        value={value}
         selected={selected}
       />
     </Button>
   );
 };
 
-(ToolbarButton as any).propTypes = {
-  selected: PropTypes.bool.isRequired,
-  label: PropTypes.string.isRequired,
-  classes: PropTypes.any.isRequired,
-  className: PropTypes.string,
-  innerRef: PropTypes.any,
-};
+ToolbarButton.displayName = 'ToolbarButton';
 
-ToolbarButton.defaultProps = {
-  className: '',
-};
-
-export const styles = createStyles({
-  toolbarBtn: {
-    padding: 0,
-    minWidth: '16px',
-    textTransform: 'none',
-  },
-});
-
-export default withStyles(styles, { name: 'MuiPickersToolbarButton' })(ToolbarButton);
+export default ToolbarButton;

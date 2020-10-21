@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const removeExternalDeps = propItem =>
+const removeExternalDeps = (propItem) =>
   propItem.description && (!propItem.parent || !propItem.parent.fileName.includes('@types'));
 
 const removeWrapperProps = (propItem, Component) => {
@@ -23,14 +23,15 @@ const doc = {};
 const srcPath = path.resolve(__dirname, '..', '..', 'lib', 'src');
 
 const components = [
-  'wrappers/ModalWrapper.tsx',
+  'wrappers/MobileWrapper.tsx',
+  'wrappers/DesktopWrapper.tsx',
   'DatePicker/DatePicker.tsx',
-  'DatePicker/KeyboardDatePicker.tsx',
   'TimePicker/TimePicker.tsx',
   'DateTimePicker/DateTimePicker.tsx',
-  'DateTimePicker/KeyboardDateTimePicker.tsx',
+  'DateRangePicker/DateRangePicker.tsx',
   // internal components
   'views/Calendar/Calendar.tsx',
+  'views/Calendar/Day.tsx',
   'views/Clock/ClockView.tsx',
 ];
 
@@ -50,7 +51,7 @@ function processProp(prop) {
   const { description } = prop;
 
   if (description.includes('@DateIOType')) {
-    prop.type.name = prop.type.name.replace(/any/g, 'DateIOType');
+    prop.type.name = prop.type.name.replace(/unknown/g, 'DateIOType');
     prop.description = description.replace(' @DateIOType', '');
   }
 
@@ -69,11 +70,18 @@ function processProp(prop) {
   prop.type.name = prop.type.name.replace(' | undefined', '');
 }
 
-components.forEach(filePart => {
+components.forEach((filePart) => {
   const file = path.join(srcPath, filePart);
   const parsedDocs = parser.parse(file);
 
-  parsedDocs.forEach(parsedDoc => {
+  parsedDocs.forEach((parsedDoc) => {
+    if (
+      parsedDoc.displayName.match(/^(Mobile|Desktop|Static)/) &&
+      !parsedDoc.displayName.endsWith('Wrapper')
+    ) {
+      return;
+    }
+
     if (Object.keys(parsedDoc.props).length === 0) {
       return;
     }

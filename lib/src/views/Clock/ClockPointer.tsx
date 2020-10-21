@@ -1,74 +1,7 @@
 import * as React from 'react';
 import clsx from 'clsx';
-import ClockType, { ClockViewType } from '../../constants/ClockType';
-import { Theme } from '@material-ui/core/styles';
-import { withStyles, createStyles, WithStyles } from '@material-ui/core/styles';
-
-export interface ClockPointerProps extends WithStyles<typeof styles> {
-  value: number;
-  hasSelected: boolean;
-  isInner: boolean;
-  type: ClockViewType;
-}
-
-export class ClockPointer extends React.Component<ClockPointerProps> {
-  public static getDerivedStateFromProps = (
-    nextProps: ClockPointerProps,
-    state: ClockPointer['state']
-  ) => {
-    if (nextProps.type !== state.previousType) {
-      return {
-        toAnimateTransform: true,
-        previousType: nextProps.type,
-      };
-    }
-
-    return {
-      toAnimateTransform: false,
-      previousType: nextProps.type,
-    };
-  };
-
-  public state = {
-    toAnimateTransform: false,
-    previousType: undefined,
-  };
-
-  public getAngleStyle = () => {
-    const { value, isInner, type } = this.props;
-
-    const max = type === ClockType.HOURS ? 12 : 60;
-    let angle = (360 / max) * value;
-
-    if (type === ClockType.HOURS && value > 12) {
-      angle -= 360; // round up angle to max 360 degrees
-    }
-
-    return {
-      height: isInner ? '26%' : '40%',
-      transform: `rotateZ(${angle}deg)`,
-    };
-  };
-
-  public render() {
-    const { classes, hasSelected } = this.props;
-
-    return (
-      <div
-        style={this.getAngleStyle()}
-        className={clsx(classes.pointer, {
-          [classes.animateTransform]: this.state.toAnimateTransform,
-        })}
-      >
-        <div
-          className={clsx(classes.thumb, {
-            [classes.noPoint]: hasSelected,
-          })}
-        />
-      </div>
-    );
-  }
-}
+import { withStyles, createStyles, Theme, WithStyles } from '@material-ui/core/styles';
+import { ClockViewType } from '../../constants/ClockType';
 
 export const styles = (theme: Theme) =>
   createStyles({
@@ -98,6 +31,76 @@ export const styles = (theme: Theme) =>
       backgroundColor: theme.palette.primary.main,
     },
   });
+
+export interface ClockPointerProps
+  extends React.HTMLProps<HTMLDivElement>,
+    WithStyles<typeof styles> {
+  value: number;
+  hasSelected: boolean;
+  isInner: boolean;
+  type: ClockViewType;
+}
+
+class ClockPointer extends React.Component<ClockPointerProps> {
+  public static getDerivedStateFromProps = (
+    nextProps: ClockPointerProps,
+    state: ClockPointer['state']
+  ) => {
+    if (nextProps.type !== state.previousType) {
+      return {
+        toAnimateTransform: true,
+        previousType: nextProps.type,
+      };
+    }
+
+    return {
+      toAnimateTransform: false,
+      previousType: nextProps.type,
+    };
+  };
+
+  public state = {
+    toAnimateTransform: false,
+    // eslint-disable-next-line react/no-unused-state
+    previousType: undefined,
+  };
+
+  public getAngleStyle = () => {
+    const { value, isInner, type } = this.props;
+
+    const max = type === 'hours' ? 12 : 60;
+    let angle = (360 / max) * value;
+
+    if (type === 'hours' && value > 12) {
+      angle -= 360; // round up angle to max 360 degrees
+    }
+
+    return {
+      height: isInner ? '26%' : '40%',
+      transform: `rotateZ(${angle}deg)`,
+    };
+  };
+
+  public render() {
+    const { classes, hasSelected, isInner, type, value, ...other } = this.props;
+
+    return (
+      <div
+        {...other}
+        style={this.getAngleStyle()}
+        className={clsx(classes.pointer, {
+          [classes.animateTransform]: this.state.toAnimateTransform,
+        })}
+      >
+        <div
+          className={clsx(classes.thumb, {
+            [classes.noPoint]: hasSelected,
+          })}
+        />
+      </div>
+    );
+  }
+}
 
 export default withStyles(styles, {
   name: 'MuiPickersClockPointer',

@@ -2,8 +2,8 @@
 node_modules
 
 # build
-dist
-build
+#dist
+#build
 
 # logs
 logs
@@ -19,7 +19,7 @@ coverage
 
 # Cache directory
 .npm
-cypress
+./cypress/**/*
 .next
 
 # Optional eslint cache
@@ -36,3 +36,5 @@ cypress
 # editors
 .vs
 .DS_Store
+
+.vercel

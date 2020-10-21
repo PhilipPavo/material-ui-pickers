@@ -1,114 +1,142 @@
-import { useUtils } from './useUtils';
-import { IUtils } from '@date-io/core/IUtils';
-import { MaterialUiPickersDate } from '../..';
+import * as React from 'react';
 import { useOpenState } from './useOpenState';
+import { WrapperVariant } from '../../wrappers/Wrapper';
 import { BasePickerProps } from '../../typings/BasePicker';
-import { getDisplayDate, validate } from '../../_helpers/text-field-helper';
-import { useCallback, useDebugValue, useEffect, useMemo, useState, useRef } from 'react';
+import { useUtils, useNow, MuiPickersAdapter } from './useUtils';
 
-export interface StateHookOptions {
-  getDefaultFormat: () => string;
+export interface PickerStateValueManager<TInput, TDateValue> {
+  parseInput: (utils: MuiPickersAdapter, props: BasePickerProps<TInput, TDateValue>) => TDateValue;
+  emptyValue: TDateValue;
+  areValuesEqual: (
+    utils: MuiPickersAdapter,
+    valueLeft: TDateValue,
+    valueRight: TDateValue
+  ) => boolean;
 }
 
-const useValueToDate = (
-  utils: IUtils<MaterialUiPickersDate>,
-  { value, initialFocusedDate }: BasePickerProps
-) => {
-  const nowRef = useRef(utils.date());
-  const date = utils.date(value || initialFocusedDate || nowRef.current);
+export type PickerSelectionState = 'partial' | 'shallow' | 'finish';
 
-  return date && utils.isValid(date) ? date : nowRef.current;
-};
+export function usePickerState<TInput, TDateValue>(
+  props: BasePickerProps<TInput, TDateValue>,
+  valueManager: PickerStateValueManager<TInput, TDateValue>
+) {
+  const {
+    inputFormat,
+    disabled,
+    readOnly,
+    onAccept,
+    onChange,
+    disableCloseOnSelect,
+    value,
+  } = props;
 
-function useDateValues(props: BasePickerProps, options: StateHookOptions) {
-  const utils = useUtils();
-  const date = useValueToDate(utils, props);
-  const format = props.format || options.getDefaultFormat();
+  if (!inputFormat) {
+    throw new Error('inputFormat prop is required');
+  }
 
-  return { date, format };
-}
-
-export function usePickerState(props: BasePickerProps, options: StateHookOptions) {
-  const { autoOk, disabled, onAccept, onChange, onError, value, variant } = props;
-
+  const now = useNow();
   const utils = useUtils();
   const { isOpen, setIsOpen } = useOpenState(props);
-  const { date, format } = useDateValues(props, options);
-  const [pickerDate, setPickerDate] = useState(date);
+  const [pickerDate, setPickerDate] = React.useState(valueManager.parseInput(utils, props));
 
-  useEffect(() => {
-    // if value was changed in closed state - treat it as accepted
-    if (!isOpen && !utils.isEqual(pickerDate, date)) {
-      setPickerDate(date);
-    }
-  }, [date, isOpen, pickerDate, utils]);
+  // Mobile keyboard view is a special case.
+  // When it's open picker should work like closed, cause we are just showing text field
+  const [isMobileKeyboardViewOpen, setMobileKeyboardViewOpen] = React.useState(false);
 
-  const acceptDate = useCallback(
-    (acceptedDate: MaterialUiPickersDate) => {
-      onChange(acceptedDate);
-      if (onAccept) {
-        onAccept(acceptedDate);
+  React.useEffect(() => {
+    const parsedDateValue = valueManager.parseInput(utils, props);
+    setPickerDate((currentPickerDate) => {
+      if (!valueManager.areValuesEqual(utils, currentPickerDate, parsedDateValue)) {
+        return parsedDateValue;
       }
 
-      setIsOpen(false);
+      return currentPickerDate;
+    });
+    // We need to react only on value change, because `date` could potentially return new Date() on each render
+  }, [value, utils]); // eslint-disable-line
+
+  const acceptDate = React.useCallback(
+    (acceptedDate: TDateValue, needClosePicker: boolean) => {
+      onChange(acceptedDate);
+
+      if (needClosePicker) {
+        setIsOpen(false);
+
+        if (onAccept) {
+          onAccept(acceptedDate);
+        }
+      }
     },
     [onAccept, onChange, setIsOpen]
   );
 
-  const wrapperProps = useMemo(
+  const wrapperProps = React.useMemo(
     () => ({
-      format,
       open: isOpen,
-      onClear: () => acceptDate(null),
-      onAccept: () => acceptDate(pickerDate),
-      onSetToday: () => setPickerDate(utils.date()),
-      onDismiss: () => {
-        setIsOpen(false);
+      onClear: () => acceptDate(valueManager.emptyValue, true),
+      onAccept: () => acceptDate(pickerDate, true),
+      onDismiss: () => setIsOpen(false),
+      onSetToday: () => {
+        // TODO FIX ME
+        setPickerDate(now as any);
+        acceptDate(now as any, !disableCloseOnSelect);
       },
     }),
-    [acceptDate, format, isOpen, pickerDate, setIsOpen, utils]
+    [acceptDate, disableCloseOnSelect, isOpen, now, pickerDate, setIsOpen, valueManager.emptyValue]
   );
 
-  const pickerProps = useMemo(
+  const pickerProps = React.useMemo(
     () => ({
+      // canAutoFocus,
       date: pickerDate,
-      onChange: (newDate: MaterialUiPickersDate, isFinish = true) => {
+      isMobileKeyboardViewOpen,
+      toggleMobileKeyboardView: () => {
+        if (!isMobileKeyboardViewOpen) {
+          // accept any partial input done by React.user
+          setPickerDate(pickerDate);
+        }
+
+        setMobileKeyboardViewOpen(!isMobileKeyboardViewOpen);
+      },
+      onDateChange: (
+        newDate: TDateValue,
+        wrapperVariant: WrapperVariant,
+        selectionState: PickerSelectionState = 'partial'
+      ) => {
         setPickerDate(newDate);
-
-        if (isFinish && autoOk) {
-          acceptDate(newDate);
-          return;
+        if (selectionState === 'partial') {
+          acceptDate(newDate, false);
         }
 
-        // simulate autoOk, but do not close the modal
-        if (variant === 'inline' || variant === 'static') {
-          onChange(newDate);
-          onAccept && onAccept(newDate);
+        if (selectionState === 'finish') {
+          const shouldCloseOnSelect = !(disableCloseOnSelect ?? wrapperVariant === 'mobile');
+          acceptDate(newDate, shouldCloseOnSelect);
         }
+
+        // if selectionState === "shallow" do nothing (we already update picker state)
       },
     }),
-    [acceptDate, autoOk, onAccept, onChange, pickerDate, variant]
+    [acceptDate, disableCloseOnSelect, isMobileKeyboardViewOpen, pickerDate]
   );
 
-  const validationError = validate(value, utils, props);
-  useEffect(() => {
-    if (onError) {
-      onError(validationError, value);
-    }
-  }, [onError, validationError, value]);
-
-  const inputValue = getDisplayDate(date, format, utils, value === null, props);
-  const inputProps = useMemo(
+  const inputProps = React.useMemo(
     () => ({
-      inputValue,
-      validationError,
-      openPicker: () => !disabled && setIsOpen(true),
+      onChange,
+      inputFormat,
+      open: isOpen,
+      rawValue: value,
+      openPicker: () => !readOnly && !disabled && setIsOpen(true),
     }),
-    [disabled, inputValue, setIsOpen, validationError]
+    [onChange, inputFormat, isOpen, value, readOnly, disabled, setIsOpen]
   );
 
   const pickerState = { pickerProps, inputProps, wrapperProps };
+  React.useDebugValue(pickerState, () => ({
+    MuiPickerState: {
+      pickerDate,
+      other: pickerState,
+    },
+  }));
 
-  useDebugValue(pickerState);
   return pickerState;
 }

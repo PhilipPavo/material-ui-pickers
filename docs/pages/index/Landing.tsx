@@ -12,7 +12,7 @@ import { GITHUB_URL } from '_constants';
 import { LandingProperty } from './LandingProperty';
 import { Button, Paper, Typography, Toolbar, Grid, makeStyles } from '@material-ui/core';
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles((theme) => ({
   logoContainer: {
     width: 228,
     backgroundColor: 'white',
@@ -96,7 +96,7 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-const Landing = () => {
+function Landing() {
   const classes = useStyles();
 
   return (
@@ -105,33 +105,28 @@ const Landing = () => {
         title="Material-UI Pickers"
         description="Accessible, customizable, delightful date & time pickers for @material-ui/core"
       />
-
       <Toolbar color="primary" className={classes.appToolbar}>
-        <Grid container justify="space-between" className={classes.landing}>
-          <Grid item container justify="center" md={4} xs={12}>
+        <Grid container justifyContent="space-between" className={classes.landing}>
+          <Grid item container justifyContent="center" md={4} xs={12}>
             <Paper elevation={8} className={classes.logoContainer}>
               <div className={classes.logo}>
                 <Logo />
               </div>
             </Paper>
           </Grid>
-
           <Grid item md={7} xs={12}>
             <Typography variant="h3" className={classes.landingTypography} gutterBottom>
               Material-UI Pickers
             </Typography>
-
             <Typography variant="h5" className={classes.landingTypography} gutterBottom>
               Date & Time pickers, built with ❤️ for @material-ui/core
             </Typography>
-
             <Grid container className={classes.buttons}>
               <Link prefetch href="/getting-started/installation">
                 <Button variant="contained" size="large">
                   Get Started
                 </Button>
               </Link>
-
               <Button
                 component="a"
                 size="large"
@@ -144,8 +139,7 @@ const Landing = () => {
             </Grid>
           </Grid>
         </Grid>
-
-        <Grid container wrap="wrap" justify="center" className={classes.papersContainer}>
+        <Grid container wrap="wrap" justifyContent="center" className={classes.papersContainer}>
           <Grid item className={classes.paper} md={4} sm={6} xs={12}>
             <LandingProperty
               icon={Code}
@@ -153,7 +147,6 @@ const Landing = () => {
               description="Be ready to out-of-box localization, accessibility, timezone management, static typing and useful API"
             />
           </Grid>
-
           <Grid item className={classes.paper} md={4} sm={6} xs={12}>
             <LandingProperty
               icon={Alarm}
@@ -161,7 +154,6 @@ const Landing = () => {
               description="Designed to be zero-effort compatible with moment, date-fns, luxon and dayjs."
             />
           </Grid>
-
           <Grid item className={classes.paper} md={4} sm={6} xs={12}>
             <LandingProperty
               icon={Devices}
@@ -171,21 +163,17 @@ const Landing = () => {
           </Grid>
         </Grid>
       </Toolbar>
-
       <div className={classes.content}>
         <KawaiiIcon className={classes.kawaiiIcon} />
-
         <Typography gutterBottom variant="h4" align="center">
           Support @material-ui/pickers
         </Typography>
-
         <Typography gutterBottom align="center">
           @material-ui/pickers is a MIT licensed open source project. We are intent on code quality
           and project maintain. You can support this project as a part of material-ui's{' '}
           <a href="https://opencollective.com/material-ui">open collective</a>. Or support this
           project directly via <a href="https://www.patreon.com/user?u=9897423"> Patreon </a>
         </Typography>
-
         <Typography align="center" className={classes.sponsorHeader} variant="h5" gutterBottom>
           Our awesome sponsors via{' '}
           <a className="link" href="https://www.patreon.com/user?u=9897423">
@@ -197,6 +185,6 @@ const Landing = () => {
       </div>
     </div>
   );
-};
+}
 
 export default Landing;

@@ -21,6 +21,7 @@ export const navItems = [
     title: 'Components Demo',
     children: [
       { title: 'Date Picker', href: '/demo/datepicker' },
+      { title: 'Date Range Picker', href: '/demo/daterangepicker' },
       { title: 'Time Picker', href: '/demo/timepicker' },
       { title: 'Date & Time Picker', href: '/demo/datetime-picker' },
     ],
@@ -28,8 +29,8 @@ export const navItems = [
   {
     title: 'Components API',
     children: Object.keys(PropTypesDoc)
-      .filter(component => !['ModalWrapper'].includes(component))
-      .map(component => ({
+      .filter((component) => !component.match(/^(Mobile|Desktop|Static)/))
+      .map((component) => ({
         title: component,
         as: `/api/${component}`,
         href: `/api/props?component=${component}`,
@@ -38,9 +39,12 @@ export const navItems = [
   {
     title: 'Guides',
     children: [
-      { title: 'Form integration', href: '/guides/form-integration' },
+      { title: 'TypeScript', href: '/guides/typescript' },
+      { title: 'Accessibility', href: '/guides/accessibility' },
+      { title: 'Form integration', href: '/guides/forms' },
       { title: 'CSS overrides', href: '/guides/css-overrides' },
-      { title: 'Global format customization', href: '/guides/formats' },
+      { title: 'Passing date adapter', href: '/guides/date-adapter-passing' },
+      { title: 'Date management customization', href: '/guides/date-io-customization' },
       {
         title: 'Open pickers programmatically',
         href: '/guides/controlling-programmatically',

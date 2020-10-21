@@ -2,27 +2,30 @@ import * as React from 'react';
 import clsx from 'clsx';
 import { makeStyles } from '@material-ui/core/styles';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
+import { CSSTransitionProps } from 'react-transition-group/CSSTransition';
 
 export type SlideDirection = 'right' | 'left';
-interface SlideTransitionProps {
+export interface SlideTransitionProps extends Omit<CSSTransitionProps, 'timeout'> {
   transKey: React.Key;
   className?: string;
+  reduceAnimations: boolean;
   slideDirection: SlideDirection;
-  children: React.ReactChild;
+  children: React.ReactElement;
 }
 
-const animationDuration = 350;
+export const slideAnimationDuration = 350;
 export const useStyles = makeStyles(
-  theme => {
+  (theme) => {
     const slideTransition = theme.transitions.create('transform', {
-      duration: animationDuration,
+      duration: slideAnimationDuration,
       easing: 'cubic-bezier(0.35, 0.8, 0.4, 1)',
     });
 
     return {
-      transitionContainer: {
+      root: {
         display: 'block',
         position: 'relative',
+        overflowX: 'hidden',
         '& > *': {
           position: 'absolute',
           top: 0,
@@ -33,10 +36,12 @@ export const useStyles = makeStyles(
       'slideEnter-left': {
         willChange: 'transform',
         transform: 'translate(100%)',
+        zIndex: 1,
       },
       'slideEnter-right': {
         willChange: 'transform',
         transform: 'translate(-100%)',
+        zIndex: 1,
       },
       slideEnterActive: {
         transform: 'translate(0%)',
@@ -47,39 +52,47 @@ export const useStyles = makeStyles(
       },
       'slideExitActiveLeft-left': {
         willChange: 'transform',
-        transform: 'translate(-200%)',
+        transform: 'translate(-100%)',
         transition: slideTransition,
+        zIndex: 0,
       },
       'slideExitActiveLeft-right': {
         willChange: 'transform',
-        transform: 'translate(200%)',
+        transform: 'translate(100%)',
         transition: slideTransition,
+        zIndex: 0,
       },
     };
   },
   { name: 'MuiPickersSlideTransition' }
 );
 
-const SlideTransition: React.SFC<SlideTransitionProps> = ({
+export const SlideTransition: React.SFC<SlideTransitionProps> = ({
   children,
-  transKey,
+  className,
+  reduceAnimations,
   slideDirection,
-  className = null,
+  transKey,
+  ...other
 }) => {
   const classes = useStyles();
+  if (reduceAnimations) {
+    return <div className={clsx(classes.root, className)}>{children}</div>;
+  }
+
   const transitionClasses = {
     exit: classes.slideExit,
     enterActive: classes.slideEnterActive,
     // @ts-ignore
-    enter: classes['slideEnter-' + slideDirection],
+    enter: classes[`slideEnter-${slideDirection}`],
     // @ts-ignore
-    exitActive: classes['slideExitActiveLeft-' + slideDirection],
+    exitActive: classes[`slideExitActiveLeft-${slideDirection}`],
   };
 
   return (
     <TransitionGroup
-      className={clsx(classes.transitionContainer, className)}
-      childFactory={element =>
+      className={clsx(classes.root, className)}
+      childFactory={(element) =>
         React.cloneElement(element, {
           classNames: transitionClasses,
         })
@@ -88,13 +101,13 @@ const SlideTransition: React.SFC<SlideTransitionProps> = ({
       <CSSTransition
         mountOnEnter
         unmountOnExit
-        key={transKey + slideDirection}
-        timeout={animationDuration}
+        key={transKey}
+        timeout={slideAnimationDuration}
         classNames={transitionClasses}
-        children={children}
-      />
+        {...other}
+      >
+        {children}
+      </CSSTransition>
     </TransitionGroup>
   );
 };
-
-export default SlideTransition;

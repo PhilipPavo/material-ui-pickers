@@ -3,7 +3,7 @@ import Link from 'next/link';
 import NavigationMenu from './NavigationMenu';
 import { version } from '@material-ui/pickers/package.json';
 import { Divider, Toolbar, Typography, Theme } from '@material-ui/core';
-import { createStyles, withStyles, WithStyles } from '@material-ui/styles';
+import { createStyles, withStyles, WithStyles } from '@material-ui/core/styles';
 
 const styles = (theme: Theme) =>
   createStyles({
@@ -35,14 +35,12 @@ const DrawerMenu: React.SFC<WithStyles<typeof styles>> = ({ classes }) => (
           Material-UI pickers
         </Typography>
       </Link>
-
       <Link href="/releases">
         <Typography variant="caption" color="textPrimary" className={classes.headerLink}>
           v{version}
         </Typography>
       </Link>
     </Toolbar>
-
     <Divider />
     <NavigationMenu />
   </div>

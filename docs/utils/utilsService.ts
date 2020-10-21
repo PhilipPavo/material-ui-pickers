@@ -1,13 +1,13 @@
-import LuxonUtils from '@date-io/luxon';
-import DayJsUtils from '@date-io/dayjs';
-import MomentUtils from '@date-io/moment';
-import DateFnsUtils from '@date-io/date-fns';
+import LuxonAdapter from '@material-ui/pickers/adapter/luxon';
+import DayJsAdapter from '@material-ui/pickers/adapter/dayjs';
+import MomentAdapter from '@material-ui/pickers/adapter/moment';
+import DateFnsAdapter from '@material-ui/pickers/adapter/date-fns';
 
 export const utilsMap = {
-  moment: MomentUtils,
-  luxon: LuxonUtils,
-  dayjs: DayJsUtils,
-  'date-fns': DateFnsUtils,
+  moment: MomentAdapter,
+  luxon: LuxonAdapter,
+  dayjs: DayJsAdapter,
+  'date-fns': DateFnsAdapter,
 };
 
 export type UtilsLib = keyof typeof utilsMap;
@@ -52,8 +52,8 @@ function replaceGetFormatInvocation(sourceToProcess: string, lib: UtilsLib) {
 
   const formatsMap = getFormatStringInvocation
     .split('\n')
-    .filter(str => libRegex.test(str))
-    .map(formatLine => {
+    .filter((str) => libRegex.test(str))
+    .map((formatLine) => {
       const libMatchResult = formatLine.match(libRegex);
       if (!libMatchResult) {
         return [];
@@ -69,13 +69,10 @@ function replaceGetFormatInvocation(sourceToProcess: string, lib: UtilsLib) {
       // allow both date-fns and dateFns
       return [lib.replace('dateFns', 'date-fns'), libFormat] as [UtilsLib, string];
     })
-    .reduce<FormatsMap>(
-      (obj, [key, value]) => {
-        obj[key] = value;
-        return obj;
-      },
-      {} as any
-    );
+    .reduce<FormatsMap>((obj, [key, value]) => {
+      obj[key] = value;
+      return obj;
+    }, {} as any);
 
   const currentLibFormat = cascadeFormats(lib, formatsMap);
   return sourceToProcess.replace(getFormatStringInvocation, `"${currentLibFormat}"`);

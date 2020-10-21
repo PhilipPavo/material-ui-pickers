@@ -1,8 +1,8 @@
 import Ad from '_shared/Ad';
 import Example from '_shared/Example';
 import PageMeta from '_shared/PageMeta';
-import * as PersianExample from './Persian.example.jsx';
-import * as HijriExample from './Hijri.example.jsx';
+import * as PersianExample from './Persian.example';
+import * as HijriExample from './Hijri.example';
 
 <PageMeta title="Additional Calendar Systems - @material-ui/pickers" />
 
@@ -17,10 +17,10 @@ Install the specified npm packages below for Jalaali or Hijri depending on which
 
 #### Jalaali calendar system
 
-Install `@date-io/jalaali` package from npm.
+Install `@date-io/jalaali` and `moment-jalaali` packages from npm.
 
 ```
-npm install @date-io/jalaali
+npm install @date-io/jalaali moment-jalaali
 ```
 
 #### Example
@@ -28,7 +28,6 @@ npm install @date-io/jalaali
 You can use the examples below. It is recommended that you change the font.
 
 <Example source={PersianExample} />
-
 <hr />
 
 #### Hijri calendar system
@@ -45,7 +44,7 @@ To use it with Arabic locale, make sure to import `moment/locale/ar-sa`
 import 'moment/locale/ar-sa';
 ```
 
-By default, the `DatePicker` uses `1900-01-01` for minDate and `2100-01-01` for maxDate.
+By default, the `DatePicker` uses `1900-01-01` for minDate and `2099-31-12` for maxDate.
 `moment-hijri` only supports dates from `1356-01-01` H (1937-03-14) to `1499-12-29` H (2076-11-26)
 so you will need to set `minDate` and `maxDate` on your `DatePicker` component otherwise your component will not work properly.
 

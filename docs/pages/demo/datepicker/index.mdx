@@ -1,73 +1,85 @@
 import Ad from '_shared/Ad';
-import Example from '_shared/Example'
-import PageMeta from '_shared/PageMeta'
-import LinkedComponents from '_shared/LinkedComponents'
+import Example from '_shared/Example';
+import PageMeta from '_shared/PageMeta';
+import LinkedComponents from '_shared/LinkedComponents';
+import { Hidden } from '@material-ui/core';
 
-import * as CustomDay from './CustomDay.example'
-import * as ServerRequest from './ServerRequest.example'
-import * as ViewsDatePicker from './ViewsDatePicker.example'
-import * as BasicDatePicker from './BasicDatePicker.example'
-import * as StaticDatePicker from './StaticDatePicker.example'
-import * as InlineDatePicker from './InlineDatePicker.example'
-import * as KeyboardDatePicker from './KeyboardDatePicker.example'
+import * as CustomDay from './CustomDay.example';
+import * as ServerRequest from './ServerRequest.example';
+import * as ViewsDatePicker from './ViewsDatePicker.example';
+import * as BasicDatePicker from './BasicDatePicker.example';
+import * as StaticDatePicker from './StaticDatePicker.example';
+import * as DatePickers from './DatePickers.example';
+import * as CustomInput from './CustomInput.example';
 
-<PageMeta component="Datepicker" />
+<PageMeta component="DatePicker" />
 
 ## Date picker
 
-Date pickers use a dialog window or an inline popover to select a single date.
-The selected day is indicated by a filled circle. The current day is indicated by a different
-color and type weight.
+[Date pickers](https://material.io/components/pickers/) let users select a date, or a range of dates. They should be suitable for the context in which they appear.
 
 <Ad />
 
 #### Basic usage
 
+Will be rendered to modal dialog on mobile and textfield with popover on desktop.
+
 <Example testId="datepicker-example" source={BasicDatePicker} />
 
-#### Keyboard Input
+#### Responsiveness
 
-It is recommended to use keyboard input with mask for a better desktop experience. Make sure that mask will be automatically
-generated from passed `format`. It's recommended to use only robust formats for keyboard input.
+The date picker component is designed and optimized for the device it runs on.
 
-> Make sure that `onChange` have second parameter here. So if you will not do `onChange={date => handleDateChange(date)}` you will get console warning [useState hook dose not accept a second callback argument](https://github.com/facebook/react/issues/14174)
+- The "Mobile" version works best for touch devices and small screens.
+- The "Desktop" version works best for mouse devices and large screens.
 
-<Example source={KeyboardDatePicker} />
+By default, the `DatePicker` component uses a `@media (pointer: fine)` media query to determine which version to use.
+This can be customized by `desktopModeMediaQuery` prop.
+
+<Example source={DatePickers} />
 
 #### Different views
 
 It is also allowed to combine `year`, `month` and `date` selection views.
 Thus you can easily create
+
 - Year picker
 - Month picker
 - Month + year picker
 
 <Example source={ViewsDatePicker} />
 
-#### Inline mode
-
-<Example source={InlineDatePicker} />
-
 #### Static mode
 
-It is possible to render any picker inline. This will be really helpful to build custom popover/modal containers.
-For that use `variant="static"`.
+It is possible to render any picker without modal or popover. This can be really helpful to build custom popover/modal containers.
+For that use `StaticDatePicker`.
 
-<Example paddingBottom source={StaticDatePicker} />
+<Hidden smDown>
+  <Example paddingBottom source={StaticDatePicker} />
+</Hidden>
+
+#### Custom input component
+
+You can customize rendering input by `renderInput` prop. But make sure you will spread `ref` and `inputProps` correctly to the custom input component.
+
+<Example source={CustomInput} />
 
 #### Customization
 
-The displaying of dates is heavily cusomizable. Thus you can add badges or fully change displaying of day.
+The displaying of dates is heavily cusomizable. Use `renderDay` function to customize view of the day.
+You can leverage our internal [Day](/api/Day) component, and render it in default way by spreading `dayProps` argument.
 
 <Example source={CustomDay} />
 
 #### Dynamic data
 
-Sometimes it's required to display additional info right in the calendar.
-For this just return `Promise` in `onMonthChange`.
+Sometimes it's required to display additional info right in the calendar. Here is an example of prefetching
+and displaying server side data using `onMonthChange`, `loading` and `renderDay` props.
+
+<!-- In order to make this example functional, make sure you are running docs using `yarn now dev` from root -->
 
 <Example source={ServerRequest} />
 
-#### Components API
+#### API
 
-<LinkedComponents components={['DatePicker', 'KeyboardDatePicker']} />
+<LinkedComponents components={['DatePicker']} />

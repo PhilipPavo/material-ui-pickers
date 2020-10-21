@@ -1,12 +1,11 @@
 import React from 'react';
 import { IUtils } from '@date-io/core/IUtils';
-import { IconButtonProps } from '@material-ui/core/IconButton';
+import { PickersDay, PickersDayProps } from '@material-ui/pickers';
 
-export const createRegressionDay = (utils: IUtils<any>) => (
+export const createRegressionDay = <TDate extends any>(utils: IUtils<TDate>) => (
   day: any,
   selectedDate: any,
-  dayInCurrentMonth: boolean,
-  dayComponent: React.ReactElement<IconButtonProps>
+  dayProps: PickersDayProps<TDate>
 ) => {
-  return <span data-day={utils.format(day, 'dd/MM/yyyy')}>{dayComponent}</span>;
+  return <PickersDay {...dayProps} data-day={utils.formatByString(day, 'dd/MM/yyyy')} />;
 };

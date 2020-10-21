@@ -1,6 +1,7 @@
 import '@percy/cypress';
+import 'cypress-plugin-tab';
+import '@testing-library/cypress/add-commands';
 
-/* eslint-disable */
 declare global {
   namespace Cypress {
     interface Chainable {
@@ -8,10 +9,9 @@ declare global {
     }
   }
 }
-/* eslint-enable */
 
 function toggleTheme(options?: Partial<Cypress.ClickOptions>) {
-  cy.get('[data-testid=toggle-theme-btn]').click(options);
+  cy.get('[data-mui-test=toggle-theme-btn]').click(options);
 }
 
 Cypress.Commands.add('toggleTheme', toggleTheme);

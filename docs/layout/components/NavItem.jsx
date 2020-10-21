@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import { withRouter } from 'next/router';
 import { ListItem, withStyles, Collapse, Button } from '@material-ui/core';
 
-const styles = theme => ({
+const styles = (theme) => ({
   listItem: {
     display: 'block',
     paddingTop: 0,
@@ -39,7 +39,7 @@ class NavItem extends React.Component {
     };
   }
 
-  handleClick = e => {
+  handleClick = (e) => {
     if (this.props.depth === 0) {
       e.stopPropagation();
     }
@@ -60,6 +60,7 @@ class NavItem extends React.Component {
         <ListItem disableGutters className={classes.listItem} {...props}>
           <Link prefetch as={as} href={href}>
             <Button
+              color="inherit"
               onClick={this.handleClick}
               style={style}
               className={clsx(classes.button, {
@@ -76,6 +77,7 @@ class NavItem extends React.Component {
     return (
       <ListItem disableGutters className={classes.listItem} {...props}>
         <Button
+          color="inherit"
           onClick={this.handleClick}
           style={style}
           classes={{
@@ -84,7 +86,6 @@ class NavItem extends React.Component {
         >
           {title}
         </Button>
-
         <Collapse in={this.state.open} unmountOnExit component="ul" className={classes.collapse}>
           {children}
         </Collapse>
